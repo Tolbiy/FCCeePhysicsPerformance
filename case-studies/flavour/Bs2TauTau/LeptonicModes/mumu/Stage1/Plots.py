@@ -44,17 +44,58 @@ def Load_AsNumpy(Mode,var,Nbins,withEdge):
     else:
         return hist
 
+#Draw the resolution sig + bkg ------------------------------
+def Plot(hlist,edges,var):
 
-def Do_Plots():
+    #To normalise and compare
+    Norm = {}
+    for mode in hlist.keys():
+        Norm[mode] = np.sum(hlist[mode])
 
-    sig, edges = Load_AsNumpy("sig","recoEmiss_e",(50,-5,35),True)
-    bb = Load_AsNumpy("bb","recoEmiss_e",(50,-5,35),False)
+    fig, ax = plt.subplots()
+    ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
 
-    print(f"Sig heights = {sig}")
-    print(f"bb heights = {bb}")
-    print(f"edges = {edges}")
+    ax.stairs(hlist["ud"]/Norm["bkg"] + hlist["ss"]/Norm["bkg"] + hlist["cc"]/Norm["bkg"] + hlist["bb"]/Norm["bkg"],  edges,lw=0,fill=True,color='slategrey',label=r"$Z^0\rightarrow u\overline{d}$")
+    ax.stairs(hlist["ss"]/Norm["bkg"] + hlist["cc"]/Norm["bkg"] + hlist["bb"]/Norm["bkg"],                            edges,lw=0,fill=True,color='mediumseagreen',label=r"$Z^0\rightarrow s\overline{s}$")
+    ax.stairs(hlist["cc"]/Norm["bkg"] + hlist["bb"]/Norm["bkg"],                                                      edges,lw=0,fill=True,color='goldenrod',label=r"$Z^0\rightarrow c\overline{c}$")
+    ax.stairs(hlist["bb"]/Norm["bkg"],                                                                                edges,lw=0,fill=True,color='steelblue',label=r"$Z^0\rightarrow b\overline{b}$")
+    
+    ax.stairs(hlist["bkg"]/Norm["bkg"],edges,ec='black',ls='-',lw=2,label=r"$\textrm{Total background}$")
+    #ax.stairs(hlist["exc"]/Norm["exc"],edges,ec='maroon',ls='--',lw=2,label=r"$\textrm{Signal (Exclusive)}$")
+    ax.stairs(hlist["sig"]/Norm["sig"],edges,ec='red',ls='-',lw=2,label=r"$\textrm{Signal}$")
+
+    #Set axis range
+    ax.set_xlim([edges[0],edges[-1]])
+
+    #Labels
+    ax.set_xlabel(r"$\textrm{"+f"{var}"+r"}$",size="large")
+    ax.set_ylabel(r"$\textrm{Normalised events}$",size="large")
+
+    #Legend (Count the number of bkg modes drawn to write it down properly)
+    ax.legend()
+        
+    #Save
+    fig.savefig(f'Plots/{var}.pdf')
+
+#=======================================================================================================
+
+def Do_Plots(var,bins):
+
+    for v in var:
+        hmode = {}
+        hmode["sig"], edges = Load_AsNumpy("sig",v,bins,True)
+        for mode in ["bb","cc","ss","ud"]:
+            hmode[mode] = Load_AsNumpy("bb",v,bins,False)
+        hmode["bkg"] = hmode["bb"]+hmode["cc"]+hmode["ss"]+hmode["ud"]
+        Plot(hmode,edges,v)
 
 
 #=======================================================================================================
 
-Do_Plots()
+parser = argparse.ArgumentParser()
+parser.add_argument("NBins", type=int)
+parser.add_argument("Low",   type=float)
+parser.add_argument("High",  type=float)
+parser.add_argument("List",   nargs='+')
+args=parser.parse_args()
+Do_Plots(args.List,(args.NBins,args.Low,args.High))
