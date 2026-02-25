@@ -3,6 +3,69 @@ from termcolor import colored
 import json
 import numpy as np
 
+#Function to find the smallest (and thus biggest cosine) opening angle -> chosen has the dimuon coming from Bs2TauTau
+r.gInterpreter.Declare('''
+    float GetMin(ROOT::VecOps::RVec<float> list){
+        if (list.size() == 0) return -2.0;
+        else if (list.size() == 1) return list[0];
+        else{
+            float result (list[0]);
+            for (size_t i=1; i<list.size();++i){
+                if (result < list[i]) result = list[i];
+            }
+            return result;
+        }
+    }
+''')
+
+
+#Function that finds the dimuon system based on muon opening and thrust angles, hemisphere emission and charges
+#Explicitly we need :
+# - An opening angle whose cosine > 0 (emitted on the same side)
+# - The thrust angles of each muon needs to be positive (emitted in the signal hemisphere)
+# - The two muons need to be of opposite charge
+r.gInterpreter.Declare('''
+    //All in one function
+    int good_dimuon(ROOT::VecOps::RVec<int> dimuon_ind,
+                    ROOT::VecOps::RVec<float> muon_OAs,
+                    ROOT::VecOps::RVec<int> muon_charges,
+                    ROOT::VecOps::RVec<float> muon_thrustangles){
+
+        if (muon_OAs.size() == 1 && std::abs(muon_OAs[0]+2.0) < 1e-4) return 0;
+        else{
+            if (GetMin(muon_OAs) < 0.0) return 0;
+            else {
+                if (muon_thrustangles[dimuon_ind.at(0)] < 0.0 && muon_thrustangles[dimuon_ind.at(1)] < 0.0) return 0;
+                else {
+                    if (muon_charges[dimuon_ind.at(0)]*muon_charges[dimuon_ind.at(1)] > 0) return 0;
+                    else return 1;
+                }
+            }
+        }
+    }
+
+    //Split the cuts to study them individually
+
+    int Check_dimuon_Presence(ROOT::VecOps::RVec<float> muon_OAs){
+        if (muon_OAs.size() == 1 && std::abs(muon_OAs[0]+2.0) < 1e-4) return 0;
+        else return 1;
+    }
+
+    int Check_dimuon_SameSide(ROOT::VecOps::RVec<float> muon_OAs){
+        if (GetMin(muon_OAs) < 0.0) return 0;
+        else return 1;
+    }
+
+    int Check_dimuon_SigHemi(ROOT::VecOps::RVec<int> dimuon_ind, ROOT::VecOps::RVec<float> muon_thrustangles){
+        if (muon_thrustangles[dimuon_ind.at(0)] < 0.0 && muon_thrustangles[dimuon_ind.at(1)] < 0.0) return 0;
+        else return 1;
+    }
+
+    int Check_dimuon_Charges(ROOT::VecOps::RVec<int> dimuon_ind, ROOT::VecOps::RVec<int> muon_charges){
+        if (muon_charges[dimuon_ind.at(0)]*muon_charges[dimuon_ind.at(1)] > 0) return 0;
+        else return 1;
+    }
+''')
 
 #Create the cut argument from the cut list --------------------------------
 
@@ -44,6 +107,11 @@ def Load_RDF(Mode):
         for i in np.arange(0,10,1):
             filenames.push_back(Path+Links[Mode]+f"/chunk_{i}.root")
     rdf = r.RDataFrame("events",filenames)
+    rdf = rdf.Define("has_good_dimuon","good_dimuon(dimuon_ind, muon_OpeningAngle, muon_charge, muon_thrustangles)")
+    rdf = rdf.Define("has_dimuon","Check_dimuon_Presence(muon_OpeningAngle)")
+    rdf = rdf.Define("has_dimuon_SameSide","Check_dimuon_SameSide(muon_OpeningAngle)")
+    rdf = rdf.Define("has_dimuon_SigHemi","Check_dimuon_SigHemi(dimuon_ind, muon_thrustangles)")
+    rdf = rdf.Define("has_dimuon_OppositeCharges","Check_dimuon_Charges(dimuon_ind, muon_charge)")
 
     return rdf
 
@@ -60,7 +128,13 @@ NCuts = 0
 CutList = ["n_muons > 1",
            "EVT_ThrustEmin_E < 38",
            "recoEmiss_e > 10",
-           "EVT_ThrustEmin_Eneutral < 10"
+           "EVT_ThrustEmin_Eneutral < 10",
+
+           #dimuon system requirement
+           "has_dimuon > 0", #/!\ Always required if want to study any other dimuon cuts
+           "has_dimuon_SameSide > 0",
+           #"has_dimuon_SigHemi > 0",
+           "has_dimuon_OppositeCharges > 0"
           ] 
 
 

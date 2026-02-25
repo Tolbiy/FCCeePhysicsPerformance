@@ -7,6 +7,61 @@ import matplotlib.patches as mpatches
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{amssymb}'
 
+r.gInterpreter.Declare('''
+    float GetMin(ROOT::VecOps::RVec<float> list){
+        if (list.size() == 0) return -2.0;
+        else if (list.size() == 1) return list[0];
+        else{
+            float result (list[0]);
+            for (size_t i=1; i<list.size();++i){
+                if (result < list[i]) result = list[i];
+            }
+            return result;
+        }
+    }
+''')
+
+r.gInterpreter.Declare('''
+    float Compare_MinMuon_TMMuon_OA(float min, float TM){
+        float result;
+        if (std::abs(min+2.0)<1e-4 || std::abs(TM+2.0)<1e-4) return -3.0;
+        else return min-TM;
+    }
+''')
+
+r.gInterpreter.Declare('''
+    int Check_dimuon(ROOT::VecOps::RVec<float> OAs){
+        if (OAs.size() == 1 && std::abs(OAs[0]+2.0) < 1e-4) return 0;
+        else return 1;
+    }
+''')
+
+#Function that finds the dimuon system based on muon opening and thrust angles, hemisphere emission and charges
+#Explicitly we need :
+# - An opening angle whose cosine > 0 (emitted on the same side)
+# - The thrust angles of each muon needs to be positive (emitted in the signal hemisphere)
+# - The two muons need to be of opposite charge
+r.gInterpreter.Declare('''
+    int good_dimuon(ROOT::VecOps::RVec<int> dimuon_ind,
+                    ROOT::VecOps::RVec<float> muon_OAs,
+                    ROOT::VecOps::RVec<int> muon_charges,
+                    ROOT::VecOps::RVec<float> muon_thrustangles){
+
+        if (muon_OAs.size() == 1 && std::abs(muon_OAs[0]+2.0) < 1e-4) return 0;
+        else{
+            if (GetMin(muon_OAs) < 0.0) return 0;
+            else {
+                if (muon_thrustangles[dimuon_ind.at(0)] < 0.0 && muon_thrustangles[dimuon_ind.at(1)] < 0.0) return 0;
+                else {
+                    if (muon_charges[dimuon_ind.at(0)]*muon_charges[dimuon_ind.at(1)] > 0) return 0;
+                    else return 1;
+                }
+            }
+        }
+
+    }
+''')
+
 
 #Dict for shortened dict key(global var -> put it in a config file)
 Links = {"bb": "p8_ee_Zbb_ecm91",
@@ -32,6 +87,9 @@ def Load_AsNumpy(Mode,var,Nbins,withEdge):
         for i in np.arange(0,10,1):
             filenames.push_back(Path+Links[Mode]+f"/chunk_{i}.root")
     rdf = r.RDataFrame("events",filenames)
+    rdf = rdf.Define("has_good_dimuon","good_dimuon(dimuon_ind, muon_OpeningAngle, muon_charge, muon_thrustangles)")
+    #rdf = rdf.Filter("n_muons > 1")
+
 
     ##### To Add Any RDF Treatment Needed #####
 
