@@ -119,9 +119,53 @@ r.gInterpreter.Declare('''
     }
 
 
-    //int Bkg_Cat(ROOT::VecOps::RVec<int> Daughters_ind, ROOT::VecOps::RVec<int> MC_PDG){
-    
-    //}
+    ROOT::VecOps::RVec<int> Find_MuSubdecays(ROOT::VecOps::RVec<int> Decays, ROOT::VecOps::RVec<int> MC_PDG, int pm){
+        
+        ROOT::VecOps::RVec<int> results;
+        
+        //No Common Ancestor case (to be refined with the daughters ind)
+        if (Decays.at(0) == -1){
+            results.push_back(-1);
+        }
+        
+        else {
+            
+            int i (0);
+            do{ 
+                int j (0);
+                do {
+                    if (MC_PDG.at(Decays.at(i+j)) == pm*(-13)){ //Start a new loop to save the PDG values of the muon mother and sister
+                        int k (0);
+                        do {
+                            results.push_back(MC_PDG.at(Decays.at(i+k)));
+                            ++k;
+                        } while (Decays.at(i+k) != -2);
+                        j=k-1; //skip the decay since already scanned
+                    }
+                    ++j;
+                } while (Decays.at(i+j) != -2);
+                i = i+j+1;
+            } while (i < Decays.size());
+        }
+        return results;
+    }
+
+    int Find_Categories(ROOT::VecOps::RVec<int> MuFamily){
+
+        //No Common ancestor case
+        if (MuFamily.size() == 1 && MuFamily.at(0) == -1){
+            return 0;
+        }
+
+        else {
+            if (500 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 600) return 1; //B mother
+            else if ((400 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 500) || std::abs(MuFamily.at(0)) == 10433 || std::abs(MuFamily.at(0)) == 10411 || std::abs(MuFamily.at(0)) == 20433) return 2; //D or excited D state mother
+            else if (300 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 400) return 3; //K mother
+            else if (std::abs(MuFamily.at(0)) == 15) return 4; //Tau mother
+            else return 5; //Other to be refined if most cases
+        }
+
+    }
 
 ''')
 
@@ -143,6 +187,10 @@ def Load_RDF(Mode):
     rdf = rdf.Define("MC_dimuon_CADaughters","Translate_PDG(MC_dimuon_CADaughters_ind,MC_PDG)")
     rdf = rdf.Define("MC_dimuon_CADaughters_ind_reduced","Decay_Chain(MC_dimuon_CADaughters_ind)")
     rdf = rdf.Define("MC_dimuon_CADaughters_reduced","Translate_PDG(MC_dimuon_CADaughters_ind_reduced,MC_PDG)")
+    
+    rdf = rdf.Define("MC_dimuonplus_Family","Find_MuSubdecays(MC_dimuon_CADaughters_ind_reduced,MC_PDG,+1)")
+    rdf = rdf.Define("MC_dimuonminus_Family","Find_MuSubdecays(MC_dimuon_CADaughters_ind_reduced,MC_PDG,-1)")
+    rdf = rdf.Define("MC_dimuon_BkgCat","10*Find_Categories(MC_dimuonplus_Family) + Find_Categories(MC_dimuonminus_Family)")
 
     return rdf
 
@@ -150,8 +198,20 @@ def Load_RDF(Mode):
 
 #=========================================================================
 
-for Mode in ["bb","cc","ss","ud","sig"]:
-    rdf = Load_RDF(Mode)
+rdf = Load_RDF("bb")
 
-    rdf.Display(["MC_dimuon_CADaughters_reduced"],30).Print()
+heights, edges = np.histogram(rdf.AsNumpy(["MC_dimuon_BkgCat"])["MC_dimuon_BkgCat"],bins=61,range=(-0.5,60.5))
+
+#c = r.TCanvas("c","c")
+#h = rdf.Histo1D("MC_dimuon_BkgCat")
+#h.Draw()
+#c.SaveAs("BkgCat.pdf")
+
+#for Mode in ["bb","cc","ss","ud","sig"]:
+#    rdf = Load_RDF(Mode)
+#
+#    #rdf.Display(["MC_dimuon_CADaughters_reduced"],30).Print()
+#
+#    h = rdf.Histo1D("MC_dimuon_BkgCat")
+#    h.Draw()
     
