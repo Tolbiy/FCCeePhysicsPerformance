@@ -24,29 +24,22 @@ rc('text', usetex=True)
 
 def TrainTest_Samples(vars):
 
-    path = "/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/PreTreatedFiles/Baseline_NoBug/"
-    modes = ["sig","bb","cc","ss","ud"]
+    path = "PreTreatedData"
+    modes = ["sig","bb"]
     dfs = {}
     train = {}
     test = {}   
 
     print("Loading PreTreated DF...")
     for mode in modes:
-        
 
+        dfs[mode] = uproot.open(f"{path}/{mode}/Naive.root:events").arrays(library="pd")#.sample(n=10000,random_state=12)
+        dfs[mode] = dfs[mode][vars]
         if mode == "sig":
-
-            dfs[mode] = uproot.open(f"{path}{mode}.root:events").arrays(library="pd").sample(n=100000,random_state=12) #Select 100k events to have as much sig as background
-            dfs[mode] = dfs[mode][vars]
             dfs[mode]["label"] = 1
-
         else:
-
-            dfs[mode] = uproot.open(f"{path}{mode}.root:events").arrays(library="pd")
-            dfs[mode] = dfs[mode][vars]
             dfs[mode]["label"] = 0
 
-        
 
         train[mode], test[mode] = train_test_split(dfs[mode], test_size=0.2, random_state=911)
 
@@ -58,10 +51,10 @@ def Train(train):
 
     print("Start Training")
     #Regroupe all modes to train the BDT
-    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc","ss","ud"]])
+    train_tot = pd.concat([train[mode] for mode in ["sig","bb"]])
 
     vars_list = list(train_tot.columns.values)[:-1]
-    print(f"Variables used: {vars_list}")
+    print(f"Variables used:\n {vars_list}")
 
     #Split into class label (y) and training vars (x)
     y = train_tot["label"]
@@ -95,7 +88,7 @@ def Train(train):
 
     print("Feature importances")
     print(feature_importances)
-    feature_importances.to_json("Feature/feature_importances_NoMass_NoBug.json")
+    feature_importances.to_json("Train_Results/Feature/Naive.json")
 
     #Create ROC curves
     decisions = bdt.predict_proba(x)[:,1]
@@ -115,14 +108,14 @@ def Train(train):
     plt.legend(loc="upper left",fontsize=20)
     plt.grid()
     plt.tight_layout()
-    fig.savefig(f"ROC/Stage2_BDT_Baseline_NoMass_NoBug.pdf")
+    fig.savefig(f"Train_Results/ROC/Naive.pdf")
 
     print("Writting BDT model")
     #Write it for additional testing
-    joblib.dump(bdt, f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoMass_NoBug.joblib")
+    joblib.dump(bdt, f"Train_Results/Models/Naive.joblib")
     
     #Write the model to a ROOT file on EOS, for application elsewhere in FCCAnalyses
-    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Bs2TauTau_Stage2_BDT", f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoMass_NoBug.root", num_inputs=len(vars_list)) 
+    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive", f"Train_Results/Models/Naive.root", num_inputs=len(vars_list)) 
     #To add it to the dataset column will need these columns -> add them in the Stage2 script
 
 #_____________________________________________________________________________________________________________________________________________  
@@ -136,17 +129,17 @@ def Test(train,test):
     
     #Get the correlation matrix
     fig2, ax2 = plt.subplots(figsize=(8,5), dpi=80)
-    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation")
-    ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0)
+    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation")
+    ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
-    fig2.savefig("Feature/Correlation_Baseline_NoMass_NoBug.pdf")
+    fig2.savefig("Train_Results/Correlation/Naive.pdf")
 
-    bdt = joblib.load(f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoMass_NoBug.joblib")
+    bdt = joblib.load(f"Train_Results/Models/Naive.joblib")
     
     #Train-Test comparison
 
-    for mode in ["sig","bb","cc","ss","ud"]:
+    for mode in ["sig","bb"]:
         train[mode]["BDT"] = bdt.predict_proba(train[mode][vars_list]).tolist()
         train[mode]["BDT"] = train[mode]["BDT"].apply(lambda x: x[1])
 
@@ -158,7 +151,7 @@ def Test(train,test):
     Eff = {}
     
     #Collect the efficiencies
-    for mode in ["sig","bb","cc","ss","ud"]:
+    for mode in ["sig","bb"]:
 
             eff_train = []
             eff_test = []
@@ -202,19 +195,21 @@ def Test(train,test):
     #Legend
     ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
 
-    fig.savefig("Overtrain/TrainTest_Baseline_NoMass_NoBug.pdf")
+    fig.savefig("Train_Results/Overtrain/Naive.pdf")
     
 
 
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train xgb model for Bs -> Tau Tau (Tau -> 3pi) Stage 2 (focuses on identified di-Tau systems)')
+    parser = argparse.ArgumentParser(description='Train xgb model for Bs -> Tau Tau (Tau -> lnunu (l=e/mu)) Stage 2 (focuses on identified dilepton systems)')
     parser.add_argument("--TrainTest", "-t", choices=["Train","Test"],required=False,help="Train: Train and Test BDT, Test: Test only",default="Train")
     args = parser.parse_args()
 
     #Select a subset of the variables
-    VarSet = ['diTau_Angles', 'diTauPlus_IP', 'diTauPlus_IPV', 'diTauMinus_IP', 'diTauMinus_IPV', 'diTauPlus_Lifetime', 'diTauMinus_Lifetime','Bs_Lifetime', 'Bs_IPV']
+    VarSet = ["plus_px","plus_py","plus_pz","plus_phi","plus_eta","plus_energy","plus_mass","plus_charge","plus_PDG","plus_thrustangles",
+               "minus_px","minus_py","minus_pz","minus_phi","minus_eta","minus_energy","minus_mass","minus_charge","minus_PDG","minus_thrustangles",
+               "Opening_Angle","dilepton_case"]
 
     train, test = TrainTest_Samples(VarSet)
 
