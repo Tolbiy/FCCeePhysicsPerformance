@@ -24,8 +24,8 @@ rc('text', usetex=True)
 
 def TrainTest_Samples(vars):
 
-    path = "PreTreatedData"
-    modes = ["sig","bb"]
+    path = "../PreTreatedData"
+    modes = ["sig","bb","cc"]
     dfs = {}
     train = {}
     test = {}   
@@ -51,7 +51,7 @@ def Train(train):
 
     print("Start Training")
     #Regroupe all modes to train the BDT
-    train_tot = pd.concat([train[mode] for mode in ["sig","bb"]])
+    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc"]])
 
     vars_list = list(train_tot.columns.values)[:-1]
     print(f"Variables used:\n {vars_list}")
@@ -139,7 +139,7 @@ def Test(train,test):
     
     #Train-Test comparison
 
-    for mode in ["sig","bb"]:
+    for mode in ["sig","bb","cc"]:
         train[mode]["BDT"] = bdt.predict_proba(train[mode][vars_list]).tolist()
         train[mode]["BDT"] = train[mode]["BDT"].apply(lambda x: x[1])
 
@@ -151,7 +151,7 @@ def Test(train,test):
     Eff = {}
     
     #Collect the efficiencies
-    for mode in ["sig","bb"]:
+    for mode in ["sig","bb","cc"]:
 
             eff_train = []
             eff_test = []
@@ -172,7 +172,7 @@ def Test(train,test):
 
     linstyle = {"train":"-","test":"--"}
 
-    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow3\pi)",
+    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow\ell\nu_{\tau}\nu_{\ell})",
               "bb": r"$Z^0\rightarrow b\overline{b}",
               "cc": r"$Z^0\rightarrow c\overline{c}",
               "ss": r"$Z^0\rightarrow s\overline{s}",
@@ -189,7 +189,7 @@ def Test(train,test):
     ax.set_xlabel("Stage 2 BDT cuts")
     ax.set_ylabel("Efficiencies")
     ax.set_xlim([0.0,1.0])
-    ax.set_ylim([1e-3,1.05])
+    ax.set_ylim([1e-4,1.05])
     ax.set_yscale("log")
 
     #Legend
@@ -207,9 +207,19 @@ def main():
     args = parser.parse_args()
 
     #Select a subset of the variables
-    VarSet = ["plus_px","plus_py","plus_pz","plus_phi","plus_eta","plus_energy","plus_mass","plus_charge","plus_PDG","plus_thrustangles",
-               "minus_px","minus_py","minus_pz","minus_phi","minus_eta","minus_energy","minus_mass","minus_charge","minus_PDG","minus_thrustangles",
-               "Opening_Angle","dilepton_case"]
+    VarSet = [#Muon related
+               "plus_px","plus_py","plus_pz","plus_phi","plus_eta","plus_energy","plus_mass","plus_thrustangles",
+               "minus_px","minus_py","minus_pz","minus_phi","minus_eta","minus_energy","minus_mass","minus_thrustangles","Opening_Angle","dilepton_case",
+
+               #Event level
+               "EVT_ThrustEmax_E","EVT_ThrustEmin_E","EVT_ThrustEmax_Echarged","EVT_ThrustEmin_Echarged","EVT_ThrustEmax_Eneutral","EVT_ThrustEmin_Eneutral",
+               "EVT_ThrustEmax_N","EVT_ThrustEmin_N","EVT_ThrustEmax_Ncharged","EVT_ThrustEmin_Ncharged","EVT_ThrustEmax_Nneutral","EVT_ThrustEmin_Nneutral",
+               "recoEmiss_thrustangle","recoEmiss_e","EVT_Thrust_Mag","EVT_Thrust_X","EVT_Thrust_Y","EVT_Thrust_Z","EAsymm",
+
+               #Vertex related
+               "EVT_ThrustEmin_NDV","EVT_ThrustEmax_NDV","EVT_dPV2DVmin","EVT_dPV2DVmax","EVT_dPV2DVave",
+               "EVT_NtracksPV","EVT_NVertex",
+               ]
 
     train, test = TrainTest_Samples(VarSet)
 
