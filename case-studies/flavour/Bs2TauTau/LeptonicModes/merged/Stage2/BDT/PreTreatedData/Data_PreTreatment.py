@@ -16,7 +16,7 @@ def RDF_Treatment(rdf):
 
     for var in ["px","py","pz","phi","eta","energy","mass","charge","PDG","thrustangles"]:
         rdf = rdf.Define(f"plus_{var}",f"lepton_{var}.at(dilepton_plus_ind)").Define(f"minus_{var}",f"lepton_{var}.at(dilepton_minus_ind)")
-    rdf = rdf.Define("Opening_Angle","plus_px*minus_px+plus_py*minus_py+plus_pz*minus_pz/sqrt(plus_px*plus_px+plus_py*plus_py+plus_pz*plus_pz)/sqrt(minus_px*minus_px+minus_py*minus_py+minus_pz*minus_pz)")
+    rdf = rdf.Define("Opening_Angle","(plus_px*minus_px+plus_py*minus_py+plus_pz*minus_pz)/sqrt(plus_px*plus_px+plus_py*plus_py+plus_pz*plus_pz)/sqrt(minus_px*minus_px+minus_py*minus_py+minus_pz*minus_pz)")
     rdf = rdf.Define("EAsymm","(EVT_ThrustEmax_E-EVT_ThrustEmin_E)/(EVT_ThrustEmin_E+EVT_ThrustEmax_E)")
 
     return rdf
@@ -27,9 +27,9 @@ def Load_RDF(mode,amount):
 
     Path = "/eos/experiment/fcc/ee/analyses_storage/flavor/Bs2TauTau/flatNtuples/winter2023/analysis_stage1_Leptons_withCuts/"
 
-    if mode == "sig" or mode == "bb": 
+    if mode == "sig": 
         
-        NF = 10
+        NF = 15
         filenames = r.std.vector('string')()
         for chunk in np.arange(0,NF,1):
             filenames.push_back(Path+Links[mode]+f"/chunk_{chunk}.root")
@@ -37,6 +37,16 @@ def Load_RDF(mode,amount):
         rdf = RDF_Treatment(rdf)
         return rdf
     
+    elif mode == "bb":
+
+        NF = 19
+        filenames = r.std.vector('string')()
+        for chunk in np.arange(0,NF,1):
+            filenames.push_back(Path+Links[mode]+f"/chunk_{chunk}.root")
+        rdf = r.RDataFrame("events",filenames)
+        rdf = RDF_Treatment(rdf)
+        return rdf
+
     else: 
         
         NF = 100
@@ -79,7 +89,7 @@ def Do_RDF_PreTreatment(amount):
     RDFs = {}
     for mode in ["sig","bb","cc"]:
         RDFs[mode] = Load_RDF(mode,amount)
-        RDFs[mode].Snapshot("events",f"{mode}/Naive.root",columns)
+        RDFs[mode].Snapshot("events",f"{mode}/Naive_withMoreData.root",columns)
 
 #=========================================================================
 

@@ -33,7 +33,7 @@ def TrainTest_Samples(vars):
     print("Loading PreTreated DF...")
     for mode in modes:
 
-        dfs[mode] = uproot.open(f"{path}/{mode}/Naive.root:events").arrays(library="pd")#.sample(n=10000,random_state=12)
+        dfs[mode] = uproot.open(f"{path}/{mode}/Naive_withMoreData.root:events").arrays(library="pd")#.sample(n=10000,random_state=12)
         dfs[mode] = dfs[mode][vars]
         if mode == "sig":
             dfs[mode]["label"] = 1
@@ -68,14 +68,16 @@ def Train(train):
 
     #BDT
     config_dict = {
-            "n_estimators": 400,
+            "n_estimators": 1000,
             "learning_rate": 0.3,
-            "max_depth": 3,
+            "max_depth": 5,
+            "min_child_weight": 50,
             }
 
     bdt = xgb.XGBClassifier(n_estimators=config_dict["n_estimators"],
                             max_depth=config_dict["max_depth"],
                             learning_rate=config_dict["learning_rate"],
+                            min_child_weight=config_dict["min_child_weight"]
                             )
 
     #Fit the model
@@ -88,7 +90,7 @@ def Train(train):
 
     print("Feature importances")
     print(feature_importances)
-    feature_importances.to_json("Train_Results/Feature/Naive.json")
+    feature_importances.to_json("Train_Results/Feature/Naive_withMoreData.json")
 
     #Create ROC curves
     decisions = bdt.predict_proba(x)[:,1]
@@ -108,14 +110,14 @@ def Train(train):
     plt.legend(loc="upper left",fontsize=20)
     plt.grid()
     plt.tight_layout()
-    fig.savefig(f"Train_Results/ROC/Naive.pdf")
+    fig.savefig(f"Train_Results/ROC/Naive_withMoreData.pdf")
 
     print("Writting BDT model")
     #Write it for additional testing
-    joblib.dump(bdt, f"Train_Results/Models/Naive.joblib")
+    joblib.dump(bdt, f"Train_Results/Models/Naive_withMoreData.joblib")
     
     #Write the model to a ROOT file on EOS, for application elsewhere in FCCAnalyses
-    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive", f"Train_Results/Models/Naive.root", num_inputs=len(vars_list)) 
+    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive_withMoreData", f"Train_Results/Models/Naive_withMoreData.root", num_inputs=len(vars_list)) 
     #To add it to the dataset column will need these columns -> add them in the Stage2 script
 
 #_____________________________________________________________________________________________________________________________________________  
@@ -133,9 +135,9 @@ def Test(train,test):
     ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
-    fig2.savefig("Train_Results/Correlation/Naive.pdf")
+    fig2.savefig("Train_Results/Correlation/Naive_withMoreData.pdf")
 
-    bdt = joblib.load(f"Train_Results/Models/Naive.joblib")
+    bdt = joblib.load(f"Train_Results/Models/Naive_withMoreData.joblib")
     
     #Train-Test comparison
 
@@ -195,7 +197,7 @@ def Test(train,test):
     #Legend
     ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
 
-    fig.savefig("Train_Results/Overtrain/Naive.pdf")
+    fig.savefig("Train_Results/Overtrain/Naive_withMoreData.pdf")
     
 
 
