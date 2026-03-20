@@ -193,7 +193,7 @@ def Draw_Toys(ValDist,Vars,BDTName):
         axs[1,1].text(0.02,0.98,r"$\mu="+f"{np.array(ValDist[var]['Sigma_Bkg']).mean()}"+r"$"+"\n"+r"$\sigma="+f"{np.array(ValDist[var]['Sigma_Bkg']).std()}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
 
 
-        axs[0,0].text(1.1,1.2,r"\textrm{Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
+        axs[0,0].text(1.1,1.2,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
 
         fig.savefig(f"{BDTName}_{var}.pdf")    
             
