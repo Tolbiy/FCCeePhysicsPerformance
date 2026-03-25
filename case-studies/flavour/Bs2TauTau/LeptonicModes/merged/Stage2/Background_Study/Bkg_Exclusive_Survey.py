@@ -4,6 +4,8 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
+plt.rcParams['text.usetex'] = True
+plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{amssymb}'
 
 r.gInterpreter.Declare('''
     #include <string>
@@ -164,9 +166,37 @@ r.gInterpreter.Declare('''
             else if ((400 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 500) || std::abs(MuFamily.at(0)) == 10433 || std::abs(MuFamily.at(0)) == 10411 || std::abs(MuFamily.at(0)) == 20433) return 2; //D or excited D state mother
             else if (300 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 400) return 3; //K mother
             else if (std::abs(MuFamily.at(0)) == 15) return 4; //Tau mother
-            else return 5; //Other to be refined if most cases
+            else if (5000 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 6000) return 5; //b-baryon mother
+            else if (4000 < std::abs(MuFamily.at(0)) && std::abs(MuFamily.at(0)) < 5000) return 6; //c-baryon mother
+            else return 7;
         }
 
+    }
+
+    int Find_SuperCat(int Cat){
+        if (Cat == 12 or Cat == 21) return 0; //B->D->K 
+        else if (Cat == 56 or Cat == 65) return 1; //Lb->Lc->L 
+        else if (Cat == 14 or Cat == 24 or Cat == 41 or Cat == 42) return 2; //B->TaunuD or D->TaunuK
+        else if (Cat == 54 or Cat == 64 or Cat == 45 or Cat == 46) return 3; //Lb->TaunuLc or Lc->TaunuL
+        else if (Cat == 22) return 4; //B->DD
+        else if (Cat == 44) return 5; //B->TauD
+        else if (Cat == 0) return 6; //Independant B/D
+        else return 7; //Code effect or UNKNOWN
+    }
+
+    string NOCA_case_PDG(ROOT::VecOps::RVec<int> Mother_ind, ROOT::VecOps::RVec<int> MCPDG){
+
+        string result ("");
+
+        if (Mother_ind.at(0) == -1) result = "Has CA or no dilepton";
+        else if (Mother_ind.at(0) == -3) result = "No or multiparents";
+        else {
+            for (size_t i=0; i<Mother_ind.size(); ++i){
+                if (Mother_ind.at(i) == -2) break;
+                else result += std::to_string(MCPDG.at(Mother_ind.at(i)))+"/";
+            }
+        }
+        return result;
     }
 
 ''')
@@ -193,7 +223,15 @@ def Load_RDF(Mode):
     
     rdf = rdf.Define("MC_dileptonplus_Family","Find_MuSubdecays(MC_dilepton_CADaughters_ind_reduced,MC_PDG,+1)")
     rdf = rdf.Define("MC_dileptonminus_Family","Find_MuSubdecays(MC_dilepton_CADaughters_ind_reduced,MC_PDG,-1)")
+    rdf = rdf.Define("MC_dilepton_nFamily","MC_dileptonplus_Family.size()+MC_dileptonminus_Family.size()")
+    #print(f"Total amount = {rdf.Count().GetValue()}")
+    #rdf = rdf.Filter("MC_dilepton_nFamily == 8")
+    #print(f"No additional lepton amount = {rdf.Count().GetValue()}")
     rdf = rdf.Define("MC_dilepton_BkgCat","10*Find_Categories(MC_dileptonplus_Family) + Find_Categories(MC_dileptonminus_Family)")
+    rdf = rdf.Define("MC_dilepton_BkgSupCat","Find_SuperCat(MC_dilepton_BkgCat)")
+
+    rdf = rdf.Define("MC_dilep1_NoCAMother_PDG","NOCA_case_PDG(MC_dilep1_NoCADaughters_ind,MC_PDG)")
+    rdf = rdf.Define("MC_dilep2_NoCAMother_PDG","NOCA_case_PDG(MC_dilep2_NoCADaughters_ind,MC_PDG)")
 
     return rdf
 
@@ -202,18 +240,85 @@ def Load_RDF(Mode):
 #=========================================================================
 
 rdf = Load_RDF("bb")
-print("===== B->D->K =====\n")
-rdf.Filter("MC_dilepton_BkgCat == 12 || MC_dilepton_BkgCat == 21").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
-print("\n===== Unkown ======\n")
-rdf.Filter("MC_dilepton_BkgCat > 50").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
 
-heights, edges = np.histogram(rdf.AsNumpy(["MC_dilepton_BkgCat"])["MC_dilepton_BkgCat"],bins=61,range=(-0.5,60.5))
+print("\n===== B->D->K =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 12 || MC_dilepton_BkgCat == 21").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Tau semileptonic (mesonic) =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 14 || MC_dilepton_BkgCat == 24 || MC_dilepton_BkgCat == 41 || MC_dilepton_BkgCat == 42").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Double D =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 22").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Double B =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 11").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Lb->Lc->L =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 56 || MC_dilepton_BkgCat == 65").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Tau semileptonic (baryonic) =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 54 || MC_dilepton_BkgCat == 64 || MC_dilepton_BkgCat == 45 || MC_dilepton_BkgCat == 46").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Double Lc =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 66").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Double Lb =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 55").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== Double Tau =====\n")
+rdf.Filter("MC_dilepton_BkgCat == 44").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+print("\n===== No Common Ancestor ======\n")
+rdf.Filter("MC_dilepton_BkgCat == 0").Display(["MC_dilep1_NoCAMother_PDG","MC_dilep2_NoCAMother_PDG"],30).Print()
+
+print("\n===== Unkown ======\n")
+rdf.Filter("MC_dilepton_BkgCat > 70 || MC_dilepton_BkgCat == 17 || MC_dilepton_BkgCat == 27 || MC_dilepton_BkgCat == 37 || MC_dilepton_BkgCat == 47 || MC_dilepton_BkgCat == 57 || MC_dilepton_BkgCat == 67").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
+
+Tot = rdf.Count().GetValue()
+heights, edges = np.histogram(rdf.AsNumpy(["MC_dilepton_BkgSupCat"])["MC_dilepton_BkgSupCat"],bins=8,range=(-0.5,7.5))
+heights2, edges2 = np.histogram(rdf.AsNumpy(["MC_dilepton_BkgCat"])["MC_dilepton_BkgCat"],bins=77,range=(-0.5,76.5))
+heights = 100*heights/Tot
 
 fig, ax = plt.subplots()
-
-ax.stairs(heights,edges)
-
+ax.stairs(heights2,edges2)
+ax.set_xlim([-1,77])
+#ax.set_ylim([0,10])
 fig.savefig("BKGCat.pdf")
+
+fig2, ax2 = plt.subplots()
+#Decays = [
+#    r"$\boldsymbol{B}\rightarrow \boldsymbol{D}\rightarrow K$",
+#    r"$\boldsymbol{\Lambda_b}\rightarrow\boldsymbol{\Lambda_c}\rightarrow{\Lambda}$",
+#    r"$B/D\rightarrow\boldsymbol{\tau}\nu_{\tau} \boldsymbol{D/K}$",
+#    r"$B\rightarrow \boldsymbol{DD}$",
+#    r"$B\rightarrow D(\rightarrow\boldsymbol{\tau}\nu_{\tau}K)\boldsymbol{\tau}$",
+#    r"\textrm{Independent }$\boldsymbol{B}/\boldsymbol{D}$",
+#    r"TBD",
+#]
+
+heights_BM = np.array([heights[0]+heights[1],heights[2]+heights[3],heights[4],heights[5],heights[6],heights[7]])
+heights_M = np.array([heights[0],heights[2],heights[4],heights[5],heights[6],heights[7]])
+
+Decaysn = [
+    r"\textrm{Cascade (}$b/c-$\textrm{hadrons)}",
+    r"\textrm{Cascade with }$\tau$",
+    r"\textrm{Double }$D$",
+    r"\textrm{Double }$\tau$",
+    r"\textrm{Independent }$b/c-$\textrm{hadrons}",
+    r"TBD",
+]
+
+ax2.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
+ax2.bar(Decaysn, heights_BM, color="lightsteelblue",label=r"\textrm{Baryonic}")
+ax2.bar(Decaysn, heights_M, color="steelblue",label=r"\textrm{Mesonic}")
+ax2.set_ylabel(r"\textrm{Ratio (out of }$"+f"{Tot}"+r"$\textrm{ events) [}$\%$\textrm{]}",size="x-large")
+ax2.set_xticks(np.arange(0,6,1),labels=Decaysn,ha="right",size="large")
+plt.xticks(rotation=35)
+
+ax2.legend(fontsize="x-large")
+
+fig2.tight_layout()
+fig2.savefig("SupCat.pdf")
 
 #c = r.TCanvas("c","c")
 #h = rdf.Histo1D("MC_dimuon_BkgCat")
