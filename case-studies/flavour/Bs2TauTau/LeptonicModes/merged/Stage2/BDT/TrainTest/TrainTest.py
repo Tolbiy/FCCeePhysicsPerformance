@@ -25,7 +25,7 @@ rc('text', usetex=True)
 def TrainTest_Samples(vars):
 
     path = "../PreTreatedData"
-    modes = ["sig","bb","cc"]
+    modes = ["sig","bb","cc","ss","ud"]
     dfs = {}
     train = {}
     test = {}   
@@ -90,7 +90,7 @@ def Train(train):
 
     print("Feature importances")
     print(feature_importances)
-    feature_importances.to_json("Train_Results/Feature/Naive_withMoreData.json")
+    feature_importances.to_json("Train_Results/Feature/Naive_withMoreData_allModes.json")
 
     #Create ROC curves
     decisions = bdt.predict_proba(x)[:,1]
@@ -110,14 +110,14 @@ def Train(train):
     plt.legend(loc="upper left",fontsize=20)
     plt.grid()
     plt.tight_layout()
-    fig.savefig(f"Train_Results/ROC/Naive_withMoreData.pdf")
+    fig.savefig(f"Train_Results/ROC/Naive_withMoreData_allModes.pdf")
 
     print("Writting BDT model")
     #Write it for additional testing
-    joblib.dump(bdt, f"Train_Results/Models/Naive_withMoreData.joblib")
+    joblib.dump(bdt, f"Train_Results/Models/Naive_withMoreData_allModes.joblib")
     
     #Write the model to a ROOT file on EOS, for application elsewhere in FCCAnalyses
-    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive_withMoreData", f"Train_Results/Models/Naive_withMoreData.root", num_inputs=len(vars_list)) 
+    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive_withMoreData_allModes", f"Train_Results/Models/Naive_withMoreData_allModes.root", num_inputs=len(vars_list)) 
     #To add it to the dataset column will need these columns -> add them in the Stage2 script
 
 #_____________________________________________________________________________________________________________________________________________  
@@ -131,17 +131,17 @@ def Test(train,test):
     
     #Get the correlation matrix
     fig2, ax2 = plt.subplots(figsize=(8,5), dpi=80)
-    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation")
+    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation")
     ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
-    fig2.savefig("Train_Results/Correlation/Naive_withMoreData.pdf")
+    fig2.savefig("Train_Results/Correlation/Naive_withMoreData_allModes.pdf")
 
-    bdt = joblib.load(f"Train_Results/Models/Naive_withMoreData.joblib")
+    bdt = joblib.load(f"Train_Results/Models/Naive_withMoreData_allModes.joblib")
     
     #Train-Test comparison
 
-    for mode in ["sig","bb","cc"]:
+    for mode in ["sig","bb","cc","ss","ud"]:
         train[mode]["BDT"] = bdt.predict_proba(train[mode][vars_list]).tolist()
         train[mode]["BDT"] = train[mode]["BDT"].apply(lambda x: x[1])
 
@@ -153,7 +153,7 @@ def Test(train,test):
     Eff = {}
     
     #Collect the efficiencies
-    for mode in ["sig","bb","cc"]:
+    for mode in ["sig","bb","cc","ss","ud"]:
 
             eff_train = []
             eff_test = []
@@ -197,7 +197,7 @@ def Test(train,test):
     #Legend
     ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
 
-    fig.savefig("Train_Results/Overtrain/Naive_withMoreData.pdf")
+    fig.savefig("Train_Results/Overtrain/Naive_withMoreData_allModes.pdf")
     
 
 

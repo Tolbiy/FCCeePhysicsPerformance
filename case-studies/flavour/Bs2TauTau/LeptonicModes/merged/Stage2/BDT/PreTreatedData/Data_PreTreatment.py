@@ -87,7 +87,7 @@ def Do_RDF_PreTreatment(amount):
         columns.push_back(var)
 
     RDFs = {}
-    for mode in ["sig","bb","cc"]:
+    for mode in ["sig","bb","cc","ss","ud"]:
         RDFs[mode] = Load_RDF(mode,amount)
         RDFs[mode].Snapshot("events",f"{mode}/Naive_withMoreData.root",columns)
 
