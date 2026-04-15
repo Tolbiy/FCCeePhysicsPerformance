@@ -232,6 +232,9 @@ def Load_RDF(Mode):
 
     rdf = rdf.Define("MC_dilep1_NoCAMother_PDG","NOCA_case_PDG(MC_dilep1_NoCADaughters_ind,MC_PDG)")
     rdf = rdf.Define("MC_dilep2_NoCAMother_PDG","NOCA_case_PDG(MC_dilep2_NoCADaughters_ind,MC_PDG)")
+    
+    rdf = rdf.Define("lp_ta","lepton_thrustangles.at(dilepton_plus_ind)")
+    rdf = rdf.Define("lm_ta","lepton_thrustangles.at(dilepton_minus_ind)")
 
     return rdf
 
@@ -270,6 +273,8 @@ rdf.Filter("MC_dilepton_BkgCat == 44").Display("MC_dilepton_CADaughters_reduced_
 
 print("\n===== No Common Ancestor ======\n")
 rdf.Filter("MC_dilepton_BkgCat == 0").Display(["MC_dilep1_NoCAMother_PDG","MC_dilep2_NoCAMother_PDG"],30).Print()
+rdf.Filter("MC_dilepton_BkgCat == 0").Display(["MC_dilep1_NoCADaughters_ind","MC_dilep2_NoCADaughters_ind"],30).Print()
+rdf.Filter("MC_dilepton_BkgCat == 0").Display(["lp_ta","lm_ta"],30).Print()
 
 print("\n===== Unkown ======\n")
 rdf.Filter("MC_dilepton_BkgCat > 70 || MC_dilepton_BkgCat == 17 || MC_dilepton_BkgCat == 27 || MC_dilepton_BkgCat == 37 || MC_dilepton_BkgCat == 47 || MC_dilepton_BkgCat == 57 || MC_dilepton_BkgCat == 67").Display("MC_dilepton_CADaughters_reduced_PDG",30).Print()
