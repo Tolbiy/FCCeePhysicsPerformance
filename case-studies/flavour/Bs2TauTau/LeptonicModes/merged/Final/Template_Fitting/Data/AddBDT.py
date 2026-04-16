@@ -56,7 +56,7 @@ def Load_Snap_RDF(mode,BDTModel,varlist):
 
 def Do_AddBDT(BDTName,VarList):
 
-    for mode in ["sig","bb","cc"]: #Restrained to these while waiting for the rest of the samples to be produced
+    for mode in ["sig","bb","cc","ss","ud"]:
         print(f"Loading and Saving {mode} mode")
         Load_Snap_RDF(mode,BDTName,VarList)
 
@@ -89,11 +89,25 @@ ModelsDict = {"Naive": [#Muon related
                         #Vertex related
                         "EVT_ThrustEmin_NDV","EVT_ThrustEmax_NDV","EVT_dPV2DVmin","EVT_dPV2DVmax","EVT_dPV2DVave",
                         "EVT_NtracksPV","EVT_NVertex",
+                       ],
+
+              "Naive_withMoreData_allModes": [#Muon related
+                        "plus_px","plus_py","plus_pz","plus_phi","plus_eta","plus_energy","plus_mass","plus_thrustangles",
+                        "minus_px","minus_py","minus_pz","minus_phi","minus_eta","minus_energy","minus_mass","minus_thrustangles","Opening_Angle","dilepton_case",
+
+                        #Event level
+                        "EVT_ThrustEmax_E","EVT_ThrustEmin_E","EVT_ThrustEmax_Echarged","EVT_ThrustEmin_Echarged","EVT_ThrustEmax_Eneutral","EVT_ThrustEmin_Eneutral",
+                        "EVT_ThrustEmax_N","EVT_ThrustEmin_N","EVT_ThrustEmax_Ncharged","EVT_ThrustEmin_Ncharged","EVT_ThrustEmax_Nneutral","EVT_ThrustEmin_Nneutral",
+                        "recoEmiss_thrustangle","recoEmiss_e","EVT_Thrust_Mag","EVT_Thrust_X","EVT_Thrust_Y","EVT_Thrust_Z","EAsymm",
+
+                        #Vertex related
+                        "EVT_ThrustEmin_NDV","EVT_ThrustEmax_NDV","EVT_dPV2DVmin","EVT_dPV2DVmax","EVT_dPV2DVave",
+                        "EVT_NtracksPV","EVT_NVertex",
                        ]
 }
 
 
-BDT_Name = "Naive_withMoreData"
+BDT_Name = "Naive_withMoreData_allModes"
 #Get the model to be added to the dataframe
 r.gInterpreter.ProcessLine(f'''
     TMVA::Experimental::RBDT<> bdt("{BDT_Name}", "/afs/cern.ch/work/t/tomonnar/public/FCCeePhysicsPerformance/case-studies/flavour/Bs2TauTau/LeptonicModes/merged/Stage2/BDT/TrainTest/Train_Results/Models/{BDT_Name}.root");
