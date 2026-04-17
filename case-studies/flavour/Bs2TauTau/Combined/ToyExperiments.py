@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{amssymb}'
-plt.rcParams["figure.figsize"] = (9,9)
+plt.rcParams["figure.figsize"] = (9,12)
 
 #- Physics number --------------------------------------------------------------
 
@@ -102,21 +102,24 @@ def Make_Shapes(hlist,Vars):
         
         #Fuse the bin edges (I just add them one behind the other by removing the first element of the second list of edges and shifting them to the end of the first list of edges)
         #Not sure how this will affect the fit but shouldn't since the only thing we care about is the bin height
-        Edge2 = hlist["sig_3pi_"+var][1][1:]
-        Shift = hlist["sig_l_"+var][1][-1]-hlist["sig_l_"+var][1][0]
-        for i in range(len(Edge2)):
-            Edge2[i] += Shift
+        #Edge2 = hlist["sig_3pi_"+var][1][1:]
+        #Shift = hlist["sig_l_"+var][1][-1]-hlist["sig_l_"+var][1][0]
+        #for i in range(len(Edge2)):
+        #    Edge2[i] += Shift
         #print(hlist["sig_l_"+var][1])
         #print(Edge2)
-        FusedEdges = np.concatenate((hlist["sig_l_"+var][1],Edge2))
+        #FusedEdges = np.concatenate((hlist["sig_l_"+var][1],Edge2))
 
-        #Sum the backgrounds together to get a single shape and fuse the different decay histo into a single one for combined fit
-        FusedBkg = np.concatenate((htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"],htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"]))
-        BkgShape[var] = (FusedBkg,FusedEdges)
+        #Fuse the Bkgs and keep to separate shape (bkgl+0 and 0+bkg3pi)
+        #Bkgl = np.concatenate((htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"],np.zeros(len(hlist["sig_3pi_"+var][1]-1))))
+        #Bkg3pi = np.concatenate((np.zeros(len(hlist["sig_l_"+var][1]-1)),htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"]))
+        BkgShape["l_"+var] = (htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"],hlist["sig_l_"+var][1])
+        BkgShape["3pi_"+var] = (htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"],hlist["sig_3pi_"+var][1])
         
         #Same in signal
-        FusedSig = np.concatenate((htemp["sig_l"],htemp["sig_3pi"]))
-        SigShape[var] = (FusedSig,FusedEdges)
+        #FusedSig = np.concatenate((htemp["sig_l"],htemp["sig_3pi"]))
+        SigShape["l_"+var] = (htemp["sig_l"],hlist["sig_l_"+var][1])
+        SigShape["3pi_"+var] = (htemp["sig_3pi"],hlist["sig_3pi_"+var][1])
 
     return SigShape, BkgShape
 
@@ -145,32 +148,39 @@ def Make_Data(hlist,Vars,bkg_dummyEff,sig_dummyEff,seed):
 
         #Fuse the bin edges (I just add them one behind the other by removing the first element of the second list of edges and shifting them to the end of the first list of edges)
         #Not sure how this will affect the fit but shouldn't since the only thing we care about is the bin height
-        Edge2 = hlist["sig_3pi_"+var][1][1:]
-        Shift = hlist["sig_l_"+var][1][-1]-hlist["sig_l_"+var][1][0]
-        for i in range(len(Edge2)):
-            Edge2[i] += Shift
-        FusedEdges = np.concatenate((hlist["sig_l_"+var][1],Edge2))
+        #Edge2 = hlist["sig_3pi_"+var][1][1:]
+        #Shift = hlist["sig_l_"+var][1][-1]-hlist["sig_l_"+var][1][0]
+        #for i in range(len(Edge2)):
+        #    Edge2[i] += Shift
+        #FusedEdges = np.concatenate((hlist["sig_l_"+var][1],Edge2))
 
         #Sum the backgrounds together to get a single shape and fuse the different decay histo into a single one for combined fit
-        FusedBkg = np.concatenate((htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"],htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"]))
+        #FusedBkg = np.concatenate((htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"],htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"]))
 
         #Same in signal
-        FusedSig = np.concatenate((htemp["sig_l"],htemp["sig_3pi"]))
+        #FusedSig = np.concatenate((htemp["sig_l"],htemp["sig_3pi"]))
+
+        SigBkg_l = htemp["bb_l"]+htemp["cc_l"]+htemp["ss_l"]+htemp["ud_l"]+htemp["sig_l"]
+        SigBkg_3pi = htemp["bb_3pi"]+htemp["cc_3pi"]+htemp["ss_3pi"]+htemp["ud_3pi"]+htemp["sig_3pi"]
 
         #Make the toy by Poisson varying it (give again the bin edges to keep the same data structure)
         np.random.seed(seed) #for reproducibility
-        SimData[var] = (np.random.poisson(FusedSig+FusedBkg),FusedEdges)
+        SimData["l_"+var] = (np.random.poisson(SigBkg_l),hlist["sig_l_"+var][1])
+        SimData["3pi_"+var] = (np.random.poisson(SigBkg_3pi),hlist["sig_3pi_"+var][1])
 
     return SimData
 
 #------------------------------------------------------------------------------------------------
 
 #The fit performed, Some troubles defining it such that we do have Bkg and Sig yields (both should be applied separatly with a constaint such that Ysig + Ybkg = Total events)
-def Yields(bin_center,SigShape,BkgShape,yields):
+def Yields(binpos,SigShape_1,SigShape_2,BkgShape_1,BkgShape_2,yields):
     
     TotShape = []
-    for i in np.arange(0,len(bin_center),1):
-        TotShape.append(yields[0]*SigShape[i]+yields[1]*BkgShape[i])
+    for i in range(len(binpos)):
+        TotShape.append(yields[0]*SigShape_1[i]+\
+                        yields[0]*SigShape_2[i]+\
+                        yields[1]*BkgShape_1[i]+\
+                        yields[2]*BkgShape_2[i])
     return TotShape
 
 
@@ -179,26 +189,49 @@ def Fitter(Data,SigShape,BkgShape,Vars):
 
     popt = {}
     pcov = {}
-    Chi2 = {}
+    #Chi2 = {}
 
-    param = [1.0,1.0] #Nsig,Nbkg
+    param = [1.0,1.0,1.0] #Nsig,Nbkg_l,Nbkg_3pi
 
     for var in Vars:
 
+        #Put the data and error bars in the correct format (l histo, 3pi histo)
+        Data_Flat = np.concatenate((Data["l_"+var][0],Data["3pi_"+var][0]))
+        Error_Flat = np.sqrt(Data_Flat)
+
         #Get the bin centers
-        bin_center = []
-        for i in np.arange(0,len(Data[var][1])-1,1):
-            bin_center.append((Data[var][1][i+1]+Data[var][1][i])/2.0)
+        bin_center = [[],[]]
+        for i in np.arange(0,len(Data["l_"+var][1])-1,1):
+            bin_center[0].append((Data["l_"+var][1][i+1]+Data["l_"+var][1][i])/2.0)
+        for j in np.arange(0,len(Data["3pi_"+var][1])-1,1):
+            bin_center[1].append((Data["3pi_"+var][1][j+1]+Data["3pi_"+var][1][j])/2.0)
+        Bincenters_Flat = np.concatenate((bin_center[0],bin_center[1]))
+
+        #Put the shapes in the correct formats
+        SigShapel_Flat = np.concatenate((SigShape["l_"+var][0],np.zeros(len(bin_center[1]))))
+        SigShape3pi_Flat = np.concatenate((np.zeros(len(bin_center[0])),SigShape["3pi_"+var][0]))
+        BkgShapel_Flat = np.concatenate((BkgShape["l_"+var][0],np.zeros(len(bin_center[1]))))
+        BkgShape3pi_Flat = np.concatenate((np.zeros(len(bin_center[0])),BkgShape["3pi_"+var][0]))
 
         #Actual fitting, the lambda expression is to tell curve_fit that only the param have to be fitted while the shape should not
-        popt[var], pcov[var] = curve_fit(lambda bin_center, *param: Yields(bin_center,SigShape[var][0],BkgShape[var][0],param), bin_center, Data[var][0], p0=param, sigma=np.sqrt(Data[var][0]), absolute_sigma=True)
+        popt[var], pcov[var] = curve_fit(lambda Bincenters_Flat, *param: \
+                                         Yields(Bincenters_Flat,
+                                                SigShapel_Flat,
+                                                SigShape3pi_Flat,
+                                                BkgShapel_Flat,
+                                                BkgShape3pi_Flat,
+                                                param),\
+                                         Bincenters_Flat, \
+                                         Data_Flat, \
+                                         p0=param, \
+                                         sigma=np.sqrt(Data_Flat), absolute_sigma=True)
 
         #Compute Chi2
-        Chi2[var] = 0.0
-        for i in np.arange(0,len(Data[var][1])-1,1):
-            Chi2[var] += (Data[var][0][i]-(SigShape[var][0][i]*popt[var][0]+BkgShape[var][0][i]*popt[var][1]))**2/np.sqrt(Data[var][0][i])**2/(len(Data[var][1])-1-2)
+        #Chi2[var] = 0.0
+        #for i in np.arange(0,len(Data[var][1])-1,1):
+        #    Chi2[var] += (Data[var][0][i]-(SigShape[var][0][i]*popt[var][0]+BkgShape["l_"+var][0][i]*popt[var][1]+BkgShape["3pi_"+var][0][i]*popt[var][2]))**2/np.sqrt(Data[var][0][i])**2/(len(Data[var][1])-1-2)
 
-    return popt, pcov, Chi2
+    return popt, pcov #,Chi2
 
 #------------------------------------------------------------------------------------------------
 
@@ -206,7 +239,7 @@ def Draw_Toys(ValDist,Vars,BDTNames):
 
     for var in Vars:
         
-        fig, axs = plt.subplots(2,2)
+        fig, axs = plt.subplots(3,2)
         for ax in axs.flat:
             ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
 
@@ -216,25 +249,39 @@ def Draw_Toys(ValDist,Vars,BDTNames):
         axs[0,1].hist(ValDist[var]["Sigma_Sig"],bins=20,color="firebrick")
         axs[0,1].set_xlabel(r"$\sigma_{N_{\rm sig}}$",fontsize="x-large")
         #axs[0,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
-        axs[1,0].hist(ValDist[var]["Best_Bkg"],bins=20,color="steelblue")
-        axs[1,0].set_xlabel(r"$<N_{\rm bkg}>$",fontsize="x-large")
+        axs[1,0].hist(ValDist[var]["Best_Bkg_l"],bins=20,color="steelblue")
+        axs[1,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to\ell}>$",fontsize="x-large")
         axs[1,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
-        axs[1,1].hist(ValDist[var]["Sigma_Bkg"],bins=20,color="steelblue")
-        axs[1,1].set_xlabel(r"$\sigma_{N_{\rm bkg}}$",fontsize="x-large")
+        axs[1,1].hist(ValDist[var]["Sigma_Bkg_l"],bins=20,color="steelblue")
+        axs[1,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to\ell}}$",fontsize="x-large")
         #axs[1,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
+        axs[2,0].hist(ValDist[var]["Best_Bkg_3pi"],bins=20,color="steelblue")
+        axs[2,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to3\pi}>$",fontsize="x-large")
+        axs[2,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
+        axs[2,1].hist(ValDist[var]["Sigma_Bkg_3pi"],bins=20,color="steelblue")
+        axs[2,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to3\pi}}$",fontsize="x-large")
 
         axs[0,0].text(0.5,1.05,r"\textrm{Best Fit Value}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
         axs[0,1].text(0.5,1.05,r"\textrm{Fit Uncertainty}",size="xx-large",transform=axs[0,1].transAxes,ha="center",va="center")
         #axs[0,0].text(-0.2,0.5,r"\textrm{Signal Distributions}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center",rotation="vertical")
         #axs[1,0].text(-0.2,0.5,r"\textrm{Background Distributions}",size="xx-large",transform=axs[1,0].transAxes,ha="center",va="center",rotation="vertical")
 
-        axs[0,0].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
-        axs[0,1].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
-        axs[1,0].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg']).std(),2)}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
-        axs[1,1].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg']).std(),2)}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
+        axs[0,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
+        axs[0,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
+        axs[1,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
+        axs[1,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
+        axs[2,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,0].transAxes,ha="left",va="top")
+        axs[2,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,1].transAxes,ha="left",va="top")
+
+        axs[0,0].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,0].transAxes,ha="left",va="top")
+        axs[0,1].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,1].transAxes,ha="left",va="top")
+        axs[1,0].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,0].transAxes,ha="left",va="top")
+        axs[1,1].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,1].transAxes,ha="left",va="top")
+        axs[2,0].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,0].transAxes,ha="left",va="top")
+        axs[2,1].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,1].transAxes,ha="left",va="top")
 
 
-        axs[0,0].text(1.1,1.2,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{\rm toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
+        axs[0,0].text(1.1,1.4,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{\rm toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
 
         fig.savefig(f"{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")    
             
@@ -266,22 +313,31 @@ def Do_Toys(Vars,BDTNames,Bins,BkgEff,SigEff,NToy):
 
     print("Getting the Sig and Bkg shapes...")
     Sig, Bkg = Make_Shapes(h,Vars)
+
+    #print(Sig["MVA2"][0])
+    #print(Bkg["l_MVA2"][0])
+    #print(Bkg["3pi_MVA2"][0])
     
     Values = {}
     for var in Vars:
-        Values[var] = {"Best_Sig":[],"Sigma_Sig":[],"Best_Bkg":[],"Sigma_Bkg":[]}
+        Values[var] = {"Best_Sig":[],"Sigma_Sig":[],"Best_Bkg_l":[],"Sigma_Bkg_l":[],"Best_Bkg_3pi":[],"Sigma_Bkg_3pi":[]}
     print("Start producing and fitting toys...\n") 
     for i in tqdm(np.arange(0,NToy,1)):
         Data = Make_Data(h,Vars,BkgEff,SigEff,10*i)
-        popt, pcov, Chi2 = Fitter(Data,Sig,Bkg,Vars)
-        
+        #print("===========================================")
+        #print(Data["MVA2"][0])
+        popt, pcov = Fitter(Data,Sig,Bkg,Vars) #, Chi2
+        #print("===========================================")
+        #print(popt)
+
         for var in Vars:
-            Values[var]["Best_Sig"].append(int(np.sum(popt[var][0]*Sig[var][0])))
-            Values[var]["Best_Bkg"].append(int(np.sum(popt[var][1]*Bkg[var][0])))
+            Values[var]["Best_Sig"].append(int(np.sum(popt[var][0]*Sig["l_"+var][0] + popt[var][0]*Sig["3pi_"+var][0])))
+            Values[var]["Best_Bkg_l"].append(int(np.sum(popt[var][1]*Bkg["l_"+var][0])))
+            Values[var]["Best_Bkg_3pi"].append(int(np.sum(popt[var][2]*Bkg["3pi_"+var][0])))
 
-            Values[var]["Sigma_Sig"].append(int(np.sum(np.sqrt(pcov[var][0][0])*Sig[var][0])))
-            Values[var]["Sigma_Bkg"].append(int(np.sum(np.sqrt(pcov[var][1][1])*Bkg[var][0])))
-
+            Values[var]["Sigma_Sig"].append(int(np.sum(np.sqrt(pcov[var][0][0])*(Sig["l_"+var][0]+Sig["3pi_"+var][0]))))
+            Values[var]["Sigma_Bkg_l"].append(int(np.sum(np.sqrt(pcov[var][1][1])*Bkg["l_"+var][0])))
+            Values[var]["Sigma_Bkg_3pi"].append(int(np.sum(np.sqrt(pcov[var][2][2])*Bkg["3pi_"+var][0])))
 
     print("\nDrawing...")
     Draw_Toys(Values,Vars,BDTNames)
