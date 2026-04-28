@@ -17,7 +17,7 @@ void Compute_PreBDTeff() {
 
         for (size_t i=0; i<NF; ++i)
         {
-            string filename ("/eos/experiment/fcc/ee/analyses_storage/flavor/Bs2TauTau/flatNtuples/winter2023/analysis_stage1_Leptons_withCuts/");
+            string filename ("/eos/experiment/fcc/ee/analyses_storage/flavor/Bs2TauTau/flatNtuples/winter2023/analysis_stage1_Leptons_withCuts_April26/");
             if (Modes.at(m) == "sig") filename += "p8_ee_Zbb_ecm91_EvtGen_Bs2TauTau/chunk_"+std::to_string(i)+".root";
             else filename += "p8_ee_Z"+Modes.at(m)+"_ecm91/chunk_"+std::to_string(i)+".root";
             
