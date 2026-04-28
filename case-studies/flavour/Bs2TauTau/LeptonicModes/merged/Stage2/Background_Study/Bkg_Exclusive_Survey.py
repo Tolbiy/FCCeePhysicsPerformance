@@ -305,11 +305,11 @@ heights_BM = np.array([heights[0]+heights[1],heights[2]+heights[3],heights[4],he
 heights_M = np.array([heights[0],heights[2],heights[4],heights[5],heights[6],heights[7]])
 
 Decaysn = [
-    r"\textrm{Cascade (}$b/c-$\textrm{hadrons)}",
+    r"\textrm{Cascade without }$\tau$",
     r"\textrm{Cascade with }$\tau$",
     r"\textrm{Double }$D$",
     r"\textrm{Double }$\tau$",
-    r"\textrm{Independent }$b/c-$\textrm{hadrons}",
+    r"\textrm{Independent}",
     r"TBD",
 ]
 
@@ -319,6 +319,7 @@ ax2.bar(Decaysn, heights_M, color="steelblue",label=r"\textrm{Mesonic}")
 ax2.set_ylabel(r"\textrm{Ratio (out of }$"+f"{Tot}"+r"$\textrm{ events) [}$\%$\textrm{]}",size="x-large")
 ax2.set_xticks(np.arange(0,6,1),labels=Decaysn,ha="right",size="large")
 plt.xticks(rotation=35)
+ax2.set_xlim([-0.5,4.5])
 
 ax2.legend(fontsize="x-large")
 
