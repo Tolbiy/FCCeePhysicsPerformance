@@ -235,7 +235,7 @@ def Draw_Hists(Data,SigShape,BkgShape,Fitted_Val,Vars):
         patch4 = Line2D([0,0], [0,1], label=r'$\textrm{Total fit}$', color='k')
         ax.legend(handles=[patch4,patch1,patch2,patch3], frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.6,0.85))
 
-        plt.savefig(f"MassFit_NoBug_{var}.pdf")    
+        plt.savefig(f"Pres_MassFit_NoBug_{var}.pdf")    
             
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
