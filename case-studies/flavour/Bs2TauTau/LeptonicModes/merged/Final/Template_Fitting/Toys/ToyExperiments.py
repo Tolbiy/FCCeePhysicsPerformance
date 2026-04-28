@@ -36,6 +36,8 @@ BR_qq["ud"] = 0.6991 - BR_qq["bb"] - BR_qq["cc"] - BR_qq["ss"]
 PreBDTEff = {}
 PreBDTEff["bb"] = 2105721/438738637
 PreBDTEff["cc"] = 6802/499786495
+PreBDTEff["ss"] = 1416/489770989
+PreBDTEff["ud"] = 1338/492658654
 #sig eff preBDT (hasPV, Stage1 cuts from MC decay selections)
 PreBDTEff["sig"] = 522843/1250154 #Warning the sig denom is with hasPV, hence the number should be close but not exact
 
@@ -45,6 +47,8 @@ LumiScale = {}
 LumiScale["sig"] = NZ/1250154 #if only a fraction of the signal, the 10M should be changed to the fraction of total number (for instance if 10 files instead of 20, change it to 5M)
 LumiScale["bb"]  = NZ/438738637
 LumiScale["cc"]  = NZ/499786495
+LumiScale["ss"]  = NZ/489770989
+LumiScale["ud"]  = NZ/492658654
 
 #==================================================================================================================================
 
@@ -58,7 +62,7 @@ def Load_Files_Hists(Vars,Nbins,BDTName):
     pathtofile = "../Data/"
 
     #Split per mode
-    for mode in ["sig","bb","cc"]:
+    for mode in ["sig","bb","cc","ss","ud"]:
         rdf = r.RDataFrame("events",pathtofile+mode+"/"+BDTName+".root")
         #rdf = rdf.Filter("MVA2 > 0.6")
         for var in Vars:
@@ -78,15 +82,15 @@ def Make_Shapes(hlist,Vars):
         
         #Scale the different such that there relative shape agrees
         htemp = {}
-        for mode in ["bb","cc"]:
+        for mode in ["bb","cc","ss","ud"]:
             htemp[mode] = hlist[mode+"_"+var][0]*LumiScale[mode]*BR_qq[mode]
         htemp["sig"] = hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim #Scaling the sig is technically not necessary
         
         #Temporary solution to fit a realistic dataset (with the expected total number of events) while not all samples have been produced
         #Let's amplify the bb bkg (main source of the shape in any case) such that the background accounts for the total amount of Z
         #The ratio done here are not perfect: 1% stat evaluation + not exactly the same amount of ss and ud as bb
-        htemp["ss"] = BR_qq["ss"]/BR_qq["bb"]*3.754e-6/4.906895e-3*htemp["bb"]
-        htemp["ud"] = BR_qq["ss"]/BR_qq["bb"]*1.3868e-5/4.906895e-3*htemp["bb"]
+        #htemp["ss"] = BR_qq["ss"]/BR_qq["bb"]*3.754e-6/4.906895e-3*htemp["bb"]
+        #htemp["ud"] = BR_qq["ss"]/BR_qq["bb"]*1.3868e-5/4.906895e-3*htemp["bb"]
         
         #Sum the backgrounds together to get a single shape
         BkgShape[var] = (htemp["bb"]+htemp["cc"]+htemp["ss"]+htemp["ud"],hlist["sig_"+var][1])
@@ -107,15 +111,15 @@ def Make_Data(hlist,Vars,bkg_dummyEff,sig_dummyEff,seed):
     for var in Vars:
 
         htemp = {}
-        for mode in ["bb","cc"]:
+        for mode in ["bb","cc","ss","ud"]:
             htemp[mode] = np.rint(hlist[mode+"_"+var][0]*LumiScale[mode]*BR_qq[mode]*bkg_dummyEff) #Round to the int, still a float type hope it works fine with the Poisson toy
         htemp["sig"] = np.rint(hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim*sig_dummyEff)
 
         #Temporary solution to fit a realistic dataset (with the expected total number of events) while not all samples have been produced
         #Let's amplify the bb bkg (main source of the shape in any case) such that the background accounts for the total amount of Z
         #The ratio done here are not perfect: 1% stat evaluation + not exactly the same amount of ss and ud as bb
-        htemp["ss"] = np.rint(BR_qq["ss"]/BR_qq["bb"]*3.754e-6/4.906895e-3*htemp["bb"])
-        htemp["ud"] = np.rint(BR_qq["ss"]/BR_qq["bb"]*1.3868e-5/4.906895e-3*htemp["bb"])
+        #htemp["ss"] = np.rint(BR_qq["ss"]/BR_qq["bb"]*3.754e-6/4.906895e-3*htemp["bb"])
+        #htemp["ud"] = np.rint(BR_qq["ss"]/BR_qq["bb"]*1.3868e-5/4.906895e-3*htemp["bb"])
 
         if seed == 10: #Print only at the beginning for info
             print(f"Total Data Background = {np.sum(htemp['bb']+htemp['cc']+htemp['ss']+htemp['ud'])}")
@@ -172,25 +176,44 @@ def Fitter(Data,SigShape,BkgShape,Vars):
 def Draw_Toys(ValDist,Vars,BDTName):
 
     for var in Vars:
+
+        #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
+        Nexp = {}
+        Nexp["sig"] = 2651
+        Nexp["bkg"] = 666333537
+
+        #Compute the pulls
+        Pulls_sig = (np.array(ValDist[var]["Best_Sig"])-Nexp["sig"])/np.array(ValDist[var]['Best_Sig']).std()
+        Pulls_bkg = (np.array(ValDist[var]["Best_Bkg"])-Nexp["bkg"])/np.array(ValDist[var]['Best_Bkg']).std()
         
         fig, axs = plt.subplots(2,2)
         for ax in axs.flat:
             ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
 
-        axs[0,0].hist(ValDist[var]["Best_Sig"],bins=20,color="firebrick")
+        hsig, edgsig = np.histogram(Pulls_sig, bins=19, range=[-5,5])
+        hbkg, edgbkg = np.histogram(Pulls_bkg, bins=19, range=[-5,5])
+
+        axs[0,0].stairs(hsig/len(ValDist[var]["Best_Sig"]),edges=edgsig,color="firebrick",fill=True)
         axs[0,1].hist(ValDist[var]["Sigma_Sig"],bins=20,color="firebrick")
-        axs[1,0].hist(ValDist[var]["Best_Bkg"],bins=20,color="steelblue")
+        axs[1,0].stairs(hbkg/len(ValDist[var]["Best_Bkg"]),edges=edgbkg,color="steelblue",fill=True)
         axs[1,1].hist(ValDist[var]["Sigma_Bkg"],bins=20,color="steelblue")
+
+        axs[0,0].set_xlabel(r"$\textrm{Signal Pulls}$",size="x-large")
+        axs[0,1].set_xlabel(r"$\sigma_{N_{\rm sig}}$",size="x-large")
+        axs[1,0].set_xlabel(r"$\textrm{Background Pulls}$",size="x-large")
+        axs[1,1].set_xlabel(r"$\sigma_{N_{\rm bkg}}$",size="x-large")
 
         axs[0,0].text(0.5,1.05,r"\textrm{Best Fitted Value}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
         axs[0,1].text(0.5,1.05,r"\textrm{Fit Uncertainty}",size="xx-large",transform=axs[0,1].transAxes,ha="center",va="center")
-        axs[0,0].text(-0.2,0.5,r"\textrm{Signal Distributions}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center",rotation="vertical")
-        axs[1,0].text(-0.2,0.5,r"\textrm{Background Distributions}",size="xx-large",transform=axs[1,0].transAxes,ha="center",va="center",rotation="vertical")
+        #axs[0,0].text(-0.2,0.5,r"\textrm{Occurences}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center",rotation="vertical")
+        #axs[1,0].text(-0.2,0.5,r"\textrm{Occurences}",size="xx-large",transform=axs[1,0].transAxes,ha="center",va="center",rotation="vertical")
+        axs[0,0].set_ylabel(r"$\textrm{Normalised Count}$",size="xx-large")
+        axs[1,0].set_ylabel(r"$\textrm{Normalised Count}$",size="xx-large")
 
-        axs[0,0].text(0.02,0.98,r"$\mu="+f"{np.array(ValDist[var]['Best_Sig']).mean()}"+r"$"+"\n"+r"$\sigma="+f"{np.array(ValDist[var]['Best_Sig']).std()}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
-        axs[0,1].text(0.02,0.98,r"$\mu="+f"{np.array(ValDist[var]['Sigma_Sig']).mean()}"+r"$"+"\n"+r"$\sigma="+f"{np.array(ValDist[var]['Sigma_Sig']).std()}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
-        axs[1,0].text(0.02,0.98,r"$\mu="+f"{np.array(ValDist[var]['Best_Bkg']).mean()}"+r"$"+"\n"+r"$\sigma="+f"{np.array(ValDist[var]['Best_Bkg']).std()}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
-        axs[1,1].text(0.02,0.98,r"$\mu="+f"{np.array(ValDist[var]['Sigma_Bkg']).mean()}"+r"$"+"\n"+r"$\sigma="+f"{np.array(ValDist[var]['Sigma_Bkg']).std()}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
+        axs[0,0].text(0.02,0.98,r"$N_{\rm sig}="+f"{int(np.array(ValDist[var]['Best_Sig']).mean())}"+r"\pm"+f"{int(np.array(ValDist[var]['Best_Sig']).std())}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
+        axs[0,1].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
+        axs[1,0].text(0.02,0.98,r"$N_{\rm bkg}="+f"{int(np.array(ValDist[var]['Best_Bkg']).mean())}"+r"\pm"+f"{int(np.array(ValDist[var]['Best_Bkg']).std())}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
+        axs[1,1].text(0.02,0.98,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg']).std(),2)}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
 
 
         axs[0,0].text(1.1,1.2,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
@@ -206,7 +229,7 @@ def Do_Toys(Vars,BDTName,Bins,BkgEff,SigEff,NToy):
     h = Load_Files_Hists(Vars,Bins,BDTName)
     print("Getting the Sig and Bkg shapes...")
     Sig, Bkg = Make_Shapes(h,Vars)
-    
+
     Values = {}
     for var in Vars:
         Values[var] = {"Best_Sig":[],"Sigma_Sig":[],"Best_Bkg":[],"Sigma_Bkg":[]}
@@ -221,7 +244,6 @@ def Do_Toys(Vars,BDTName,Bins,BkgEff,SigEff,NToy):
 
             Values[var]["Sigma_Sig"].append(int(np.sum(np.sqrt(pcov[var][0][0])*Sig[var][0])))
             Values[var]["Sigma_Bkg"].append(int(np.sum(np.sqrt(pcov[var][1][1])*Bkg[var][0])))
-
 
     print("\nDrawing...")
     Draw_Toys(Values,Vars,BDTName)
