@@ -95,6 +95,7 @@ def Load_AsNumpy(Mode,var,Nbins,withEdge):
 
     ###########################################
 
+    print(f"{Mode}: Number of events = {rdf.Count().GetValue()}")
     hist, edges = np.histogram(rdf.AsNumpy([var])[var],bins=Nbins[0],range=(Nbins[1],Nbins[2]))
 
     if withEdge:
@@ -143,7 +144,7 @@ def Do_Plots(var,bins):
         hmode = {}
         hmode["sig"], edges = Load_AsNumpy("sig",v,bins,True)
         for mode in ["bb","cc","ss","ud"]:
-            hmode[mode] = Load_AsNumpy("bb",v,bins,False)
+            hmode[mode] = Load_AsNumpy(mode,v,bins,False)
         hmode["bkg"] = hmode["bb"]+hmode["cc"]+hmode["ss"]+hmode["ud"]
         Plot(hmode,edges,v)
 
