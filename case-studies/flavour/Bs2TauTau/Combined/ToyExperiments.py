@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 plt.rcParams['text.usetex'] = True
 plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{amssymb}'
-plt.rcParams["figure.figsize"] = (9,12)
+plt.rcParams["figure.figsize"] = (18,6)
 
 #- Physics number --------------------------------------------------------------
 
@@ -47,7 +47,7 @@ PreBDTEff["ud_l"] = 1338/492658654
 PreBDTEff["bb_3pi"] = 97114/434383092
 PreBDTEff["cc_3pi"] = 2310/494686495
 PreBDTEff["ss_3pi"] = 709/499842440
-PreBDTEff["ud_3pi"] = 414/499786495
+PreBDTEff["ud_3pi"] = 414/497658654
 
 #sig eff preBDT (hasPV, Stage1 cuts from MC decay selections)
 PreBDTEff["sig_l"] = 522843/1250154 #Warning the sig denom is with hasPV, hence the number should be close but not exact
@@ -239,51 +239,90 @@ def Draw_Toys(ValDist,Vars,BDTNames):
 
     for var in Vars:
         
-        fig, axs = plt.subplots(3,2)
+        fig, axs = plt.subplots(1,3)
         for ax in axs.flat:
-            ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
+            ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5) 
 
-        axs[0,0].hist(ValDist[var]["Best_Sig"],bins=20,color="firebrick")
-        axs[0,0].set_xlabel(r"$<N_{\rm sig}>$",fontsize="x-large")
-        axs[0,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
-        axs[0,1].hist(ValDist[var]["Sigma_Sig"],bins=20,color="firebrick")
-        axs[0,1].set_xlabel(r"$\sigma_{N_{\rm sig}}$",fontsize="x-large")
-        #axs[0,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
-        axs[1,0].hist(ValDist[var]["Best_Bkg_l"],bins=20,color="steelblue")
-        axs[1,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to\ell}>$",fontsize="x-large")
-        axs[1,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
-        axs[1,1].hist(ValDist[var]["Sigma_Bkg_l"],bins=20,color="steelblue")
-        axs[1,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to\ell}}$",fontsize="x-large")
-        #axs[1,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
-        axs[2,0].hist(ValDist[var]["Best_Bkg_3pi"],bins=20,color="steelblue")
-        axs[2,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to3\pi}>$",fontsize="x-large")
-        axs[2,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
-        axs[2,1].hist(ValDist[var]["Sigma_Bkg_3pi"],bins=20,color="steelblue")
-        axs[2,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to3\pi}}$",fontsize="x-large")
+        #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
+        Nexp = {}
+        Nexp["sig"] = 2901
+        Nexp["bkg_3pi"] = 17568598
+        Nexp["bkg_l"] = 666333537
 
-        axs[0,0].text(0.5,1.05,r"\textrm{Best Fit Value}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
-        axs[0,1].text(0.5,1.05,r"\textrm{Fit Uncertainty}",size="xx-large",transform=axs[0,1].transAxes,ha="center",va="center")
-        #axs[0,0].text(-0.2,0.5,r"\textrm{Signal Distributions}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center",rotation="vertical")
-        #axs[1,0].text(-0.2,0.5,r"\textrm{Background Distributions}",size="xx-large",transform=axs[1,0].transAxes,ha="center",va="center",rotation="vertical")
+        #Compute the pulls
+        Pulls_sig = (np.array(ValDist[var]["Best_Sig"])-Nexp["sig"])/np.array(ValDist[var]['Best_Sig']).std()
+        Pulls_bkg3pi = (np.array(ValDist[var]["Best_Bkg_3pi"])-Nexp["bkg_3pi"])/np.array(ValDist[var]['Best_Bkg_3pi']).std()
+        Pulls_bkgl = (np.array(ValDist[var]["Best_Bkg_l"])-Nexp["bkg_l"])/np.array(ValDist[var]['Best_Bkg_l']).std()
 
-        axs[0,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
-        axs[0,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
-        axs[1,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
-        axs[1,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
-        axs[2,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,0].transAxes,ha="left",va="top")
-        axs[2,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,1].transAxes,ha="left",va="top")
+        hsig, edgsig = np.histogram(Pulls_sig, bins=19, range=[-5,5])
+        hbkg3pi, edgbkg3pi = np.histogram(Pulls_bkg3pi, bins=19, range=[-5,5])
+        hbkgl, edgbkgl = np.histogram(Pulls_bkgl, bins=19, range=[-5,5])
 
-        axs[0,0].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,0].transAxes,ha="left",va="top")
-        axs[0,1].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,1].transAxes,ha="left",va="top")
-        axs[1,0].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,0].transAxes,ha="left",va="top")
-        axs[1,1].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,1].transAxes,ha="left",va="top")
-        axs[2,0].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,0].transAxes,ha="left",va="top")
-        axs[2,1].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,1].transAxes,ha="left",va="top")
+        axs[0].stairs(hsig/len(ValDist[var]["Best_Sig"]),edges=edgsig,color="firebrick",fill=True)
+        axs[1].stairs(hbkg3pi/len(ValDist[var]["Best_Bkg_3pi"]),edges=edgbkg3pi,color="steelblue",fill=True)
+        axs[2].stairs(hbkgl/len(ValDist[var]["Best_Bkg_l"]),edges=edgbkgl,color="steelblue",fill=True)
+
+        axs[0].set_xlabel(r"$\textrm{Signal Pulls}$",size="x-large")
+        axs[1].set_xlabel(r"$\tau\to3\pi\textrm{ Background Pulls}$",size="x-large")
+        axs[2].set_xlabel(r"$\tau\to\ell\textrm{ Background Pulls}$",size="x-large")
+
+        axs[0].set_ylabel(r"$\textrm{Normalised Count}$",size="xx-large")
+        axs[1].set_ylabel(r"$\textrm{Normalised Count}$",size="xx-large")
+        axs[2].set_ylabel(r"$\textrm{Normalised Count}$",size="xx-large")
+
+        axs[0].text(0.02,0.98,r"$N_{\rm sig}="+f"{int(np.array(ValDist[var]['Best_Sig']).mean())}\pm"+f"{int(np.array(ValDist[var]['Best_Sig']).std())}"+r"$",size="large",transform=axs[0].transAxes,ha="left",va="top")
+        axs[1].text(0.02,0.98,r"$N_{\rm bkg}^{\tau\to3\pi}="+f"{int(np.array(ValDist[var]['Best_Bkg_3pi']).mean())}\pm"+f"{int(np.array(ValDist[var]['Best_Bkg_3pi']).std())}"+r"$",size="large",transform=axs[1].transAxes,ha="left",va="top")
+        axs[2].text(0.02,0.98,r"$N_{\rm bkg}^{\tau\to\ell}="+f"{int(np.array(ValDist[var]['Best_Bkg_l']).mean())}\pm"+f"{int(np.array(ValDist[var]['Best_Bkg_l']).std())}"+r"$",size="large",transform=axs[2].transAxes,ha="left",va="top")
+
+        axs[0].text(1.1,1.1,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0].transAxes,ha="center",va="center")
+        fig.savefig(f"Pres_{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")
 
 
-        axs[0,0].text(1.1,1.4,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{\rm toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
-
-        fig.savefig(f"{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")    
+        #fig, axs = plt.subplots(3,2)
+        #for ax in axs.flat:
+        #    ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
+#
+        #axs[0,0].hist(ValDist[var]["Best_Sig"],bins=20,color="firebrick")
+        #axs[0,0].set_xlabel(r"$<N_{\rm sig}>$",fontsize="x-large")
+        #axs[0,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
+        #axs[0,1].hist(ValDist[var]["Sigma_Sig"],bins=20,color="firebrick")
+        #axs[0,1].set_xlabel(r"$\sigma_{N_{\rm sig}}$",fontsize="x-large")
+        ##axs[0,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
+        #axs[1,0].hist(ValDist[var]["Best_Bkg_l"],bins=20,color="steelblue")
+        #axs[1,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to\ell}>$",fontsize="x-large")
+        #axs[1,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
+        #axs[1,1].hist(ValDist[var]["Sigma_Bkg_l"],bins=20,color="steelblue")
+        #axs[1,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to\ell}}$",fontsize="x-large")
+        ##axs[1,1].set_ylabel(r"\textrm{Occurences}",fontsize="large")
+        #axs[2,0].hist(ValDist[var]["Best_Bkg_3pi"],bins=20,color="steelblue")
+        #axs[2,0].set_xlabel(r"$<N_{\rm bkg}^{\tau\to3\pi}>$",fontsize="x-large")
+        #axs[2,0].set_ylabel(r"\textrm{Occurences}",fontsize="xx-large")
+        #axs[2,1].hist(ValDist[var]["Sigma_Bkg_3pi"],bins=20,color="steelblue")
+        #axs[2,1].set_xlabel(r"$\sigma_{N_{\rm bkg}^{\tau\to3\pi}}$",fontsize="x-large")
+#
+        #axs[0,0].text(0.5,1.05,r"\textrm{Best Fit Value}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
+        #axs[0,1].text(0.5,1.05,r"\textrm{Fit Uncertainty}",size="xx-large",transform=axs[0,1].transAxes,ha="center",va="center")
+        ##axs[0,0].text(-0.2,0.5,r"\textrm{Signal Distributions}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center",rotation="vertical")
+        ##axs[1,0].text(-0.2,0.5,r"\textrm{Background Distributions}",size="xx-large",transform=axs[1,0].transAxes,ha="center",va="center",rotation="vertical")
+#
+        #axs[0,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,0].transAxes,ha="left",va="top")
+        #axs[0,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Sig']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Sig']).std(),2)}"+r"$",size="large",transform=axs[0,1].transAxes,ha="left",va="top")
+        #axs[1,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,0].transAxes,ha="left",va="top")
+        #axs[1,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_l']).std(),2)}"+r"$",size="large",transform=axs[1,1].transAxes,ha="left",va="top")
+        #axs[2,0].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Best_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,0].transAxes,ha="left",va="top")
+        #axs[2,1].text(0.02,0.9,r"$\mu="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).mean(),2)}"+r"$"+"\n"+r"$\sigma="+f"{round(np.array(ValDist[var]['Sigma_Bkg_3pi']).std(),2)}"+r"$",size="large",transform=axs[2,1].transAxes,ha="left",va="top")
+#
+        #axs[0,0].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,0].transAxes,ha="left",va="top")
+        #axs[0,1].text(0.02,0.98,r"\textrm{Combined Signal}",size="x-large",transform=axs[0,1].transAxes,ha="left",va="top")
+        #axs[1,0].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,0].transAxes,ha="left",va="top")
+        #axs[1,1].text(0.02,0.98,r"$\tau\to\ell$",size="x-large",transform=axs[1,1].transAxes,ha="left",va="top")
+        #axs[2,0].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,0].transAxes,ha="left",va="top")
+        #axs[2,1].text(0.02,0.98,r"$\tau\to3\pi$",size="x-large",transform=axs[2,1].transAxes,ha="left",va="top")
+#
+#
+        #axs[0,0].text(1.1,1.4,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{\rm toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
+#
+        #fig.savefig(f"{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")    
             
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
