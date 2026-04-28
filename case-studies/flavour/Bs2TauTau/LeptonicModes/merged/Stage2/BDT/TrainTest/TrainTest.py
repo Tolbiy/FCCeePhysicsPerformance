@@ -12,6 +12,8 @@ import uproot
 import ROOT
 import joblib
 import glob
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 
 from matplotlib import rc
 rc('font',**{'family':'serif','serif':['Roman']})
@@ -25,7 +27,7 @@ rc('text', usetex=True)
 def TrainTest_Samples(vars):
 
     path = "../PreTreatedData"
-    modes = ["sig","bb","cc","ss","ud"]
+    modes = ["sig","bb","cc","ss","ud"] #READD AFTER PRODUCTION !!!! 
     dfs = {}
     train = {}
     test = {}   
@@ -33,7 +35,7 @@ def TrainTest_Samples(vars):
     print("Loading PreTreated DF...")
     for mode in modes:
 
-        dfs[mode] = uproot.open(f"{path}/{mode}/Naive_withMoreData.root:events").arrays(library="pd")#.sample(n=10000,random_state=12)
+        dfs[mode] = uproot.open(f"{path}/{mode}/Naive_withMoreData.root:events").arrays(library="pd")#.sample(n=200000,random_state=12)
         dfs[mode] = dfs[mode][vars]
         if mode == "sig":
             dfs[mode]["label"] = 1
@@ -51,7 +53,7 @@ def Train(train):
 
     print("Start Training")
     #Regroupe all modes to train the BDT
-    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc"]])
+    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc","ss","ud"]]) #READD AFTER PRODUCTION
 
     vars_list = list(train_tot.columns.values)[:-1]
     print(f"Variables used:\n {vars_list}")
@@ -70,14 +72,14 @@ def Train(train):
     config_dict = {
             "n_estimators": 1000,
             "learning_rate": 0.3,
-            "max_depth": 5,
-            "min_child_weight": 50,
+            "max_depth": 3,
+            #"min_child_weight": 50,
             }
 
     bdt = xgb.XGBClassifier(n_estimators=config_dict["n_estimators"],
                             max_depth=config_dict["max_depth"],
                             learning_rate=config_dict["learning_rate"],
-                            min_child_weight=config_dict["min_child_weight"]
+                            #min_child_weight=config_dict["min_child_weight"]
                             )
 
     #Fit the model
@@ -91,26 +93,6 @@ def Train(train):
     print("Feature importances")
     print(feature_importances)
     feature_importances.to_json("Train_Results/Feature/Naive_withMoreData_allModes.json")
-
-    #Create ROC curves
-    decisions = bdt.predict_proba(x)[:,1]
-
-    # Compute ROC curves and area under the curve
-    fpr, tpr, thresholds = roc_curve(y, decisions)
-    roc_auc = auc(fpr, tpr)
-
-    fig, ax = plt.subplots(figsize=(8,8))
-    plt.plot(tpr, 1-fpr, lw=1.5, color="k", label='ROC (area = %0.3f)'%(roc_auc))
-    plt.plot([0.45, 1.], [0.45, 1.], linestyle="--", color="k", label='50/50')
-    plt.xlim(0.45,1.)
-    plt.ylim(0.45,1.)
-    plt.ylabel('Background rejection',fontsize=30)
-    plt.xlabel('Signal efficiency',fontsize=30)
-    ax.tick_params(axis='both', which='major', labelsize=25)
-    plt.legend(loc="upper left",fontsize=20)
-    plt.grid()
-    plt.tight_layout()
-    fig.savefig(f"Train_Results/ROC/Naive_withMoreData_allModes.pdf")
 
     print("Writting BDT model")
     #Write it for additional testing
@@ -131,7 +113,7 @@ def Test(train,test):
     
     #Get the correlation matrix
     fig2, ax2 = plt.subplots(figsize=(8,5), dpi=80)
-    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation")
+    fig2.colorbar(ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0),label="Correlation") #READD AFTER PRODUCTION
     ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
@@ -139,21 +121,80 @@ def Test(train,test):
 
     bdt = joblib.load(f"Train_Results/Models/Naive_withMoreData_allModes.joblib")
     
-    #Train-Test comparison
+    #Create ROC curves
+    
+    #Split into class label (y) and training vars (x)
+    #Regroupe all modes to train the BDT
+    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc","ss","ud"]])
+    y = train_tot["label"]
+    x = train_tot[vars_list]
+    y = y.to_numpy()
+    x = x.to_numpy()
 
-    for mode in ["sig","bb","cc","ss","ud"]:
+
+    decisions = bdt.predict_proba(x)[:,1]
+
+    # Compute ROC curves and area under the curve
+    fpr, tpr, thresholds = roc_curve(y, decisions)
+    roc_auc = auc(fpr, tpr)
+
+    fig, ax = plt.subplots(figsize=(8,8))
+    plt.plot(fpr, tpr, lw=1.5, color="k", label='ROC (area = %0.3f)'%(roc_auc))
+    plt.plot([0., 1.], [0., 1.], linestyle="--", color="k", label='50/50')
+    plt.xlim(0.,1.)
+    plt.ylim(0.,1.)
+    plt.ylabel('True positive rate',fontsize=30)
+    plt.xlabel('False positive rate',fontsize=30)
+    ax.tick_params(axis='both', which='major', labelsize=25)
+    plt.legend(loc="lower right",fontsize=20)
+    plt.grid()
+    plt.tight_layout()
+    fig.savefig(f"Train_Results/ROC/Naive_withMoreData_allModes.pdf")
+
+
+    #Train-Test comparison
+    for mode in ["sig","bb","cc","ss","ud"]: #READD AFTER PRODUCTION
         train[mode]["BDT"] = bdt.predict_proba(train[mode][vars_list]).tolist()
         train[mode]["BDT"] = train[mode]["BDT"].apply(lambda x: x[1])
 
         test[mode]["BDT"] = bdt.predict_proba(test[mode][vars_list]).tolist()
         test[mode]["BDT"] = test[mode]["BDT"].apply(lambda x: x[1])
 
+    train["bkg"] = pd.concat([train[mode] for mode in ["bb","cc","ss","ud"]])
+    test["bkg"] = pd.concat([test[mode] for mode in ["bb","cc","ss","ud"]])
+
+    BDTHist = {}
+    BDTHist["train_sig"] = np.histogram(train["sig"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["train_bkg"] = np.histogram(train["bkg"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["test_sig"] = np.histogram(test["sig"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["test_bkg"] = np.histogram(test["bkg"]["BDT"].to_numpy(),bins=50,range=[0,1])
+
+    NormHeight = {}
+    NormHeight["train_sig"] = np.array(BDTHist["train_sig"][0])/len(train["sig"]["BDT"].to_numpy())
+    NormHeight["train_bkg"] = np.array(BDTHist["train_bkg"][0])/len(train["bkg"]["BDT"].to_numpy())
+    NormHeight["test_sig"] = np.array(BDTHist["test_sig"][0])/len(test["sig"]["BDT"].to_numpy())
+    NormHeight["test_bkg"] = np.array(BDTHist["test_bkg"][0])/len(test["bkg"]["BDT"].to_numpy())
+
+    fig, ax = plt.subplots()
+    ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    ax.stairs(NormHeight["train_sig"],BDTHist["train_sig"][1],ls="-",color="firebrick",label="Sig. training")
+    ax.stairs(NormHeight["test_sig"],BDTHist["train_sig"][1],ls="--",color="firebrick",label="Sig. testing")
+    ax.stairs(NormHeight["train_bkg"],BDTHist["train_sig"][1],ls="-",color="steelblue",label="Bkg. training")
+    ax.stairs(NormHeight["test_bkg"],BDTHist["train_sig"][1],ls="--",color="steelblue",label="Bkg. testing")
+
+    ax.set_xlabel(r"$\textrm{BDT Score}$")
+    ax.set_ylabel(r"$\textrm{Normalised Counts}$")
+    ax.legend()
+    fig.savefig("Train_Results/Overtrain/Pres_Naive_withMoreData_allModes.pdf")
+
+    '''
     
     cuts = np.linspace(0.0,1.0,100)
     Eff = {}
     
     #Collect the efficiencies
-    for mode in ["sig","bb","cc","ss","ud"]:
+    for mode in ["ud","ss","cc","bb","sig"]: #READD AFTER PRODUCTION
 
             eff_train = []
             eff_test = []
@@ -165,20 +206,20 @@ def Test(train,test):
 
     #Start drawing
 
-    colors = {"sig":"royalblue",
-              "bb": "indigo",
-              "cc": "darkorchid",
-              "ss": "darkviolet",
-              "ud": "mediumorchid",
+    colors = {"sig":"firebrick",
+              "bb": "steelblue",
+              "cc": "goldenrod",
+              "ss": "mediumseagreen",
+              "ud": "slategrey",
              }
 
     linstyle = {"train":"-","test":"--"}
 
-    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow\ell\nu_{\tau}\nu_{\ell})",
-              "bb": r"$Z^0\rightarrow b\overline{b}",
-              "cc": r"$Z^0\rightarrow c\overline{c}",
-              "ss": r"$Z^0\rightarrow s\overline{s}",
-              "ud": r"$Z^0\rightarrow u\overline{d}",
+    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow\ell\nu_{\tau}\nu_{\ell})$",
+              "bb": r"$Z^0\rightarrow b\overline{b}$",
+              "cc": r"$Z^0\rightarrow c\overline{c}$",
+              "ss": r"$Z^0\rightarrow s\overline{s}$",
+              "ud": r"$Z^0\rightarrow u\overline{d}$",
              }
 
     fig, ax = plt.subplots()
@@ -195,10 +236,21 @@ def Test(train,test):
     ax.set_yscale("log")
 
     #Legend
-    ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
+    #ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
+
+    #Legend
+    testlab = Line2D([0,0], [0,1], label=r'$\textrm{Test}$', ls="--", color='k')
+    trainlab = Line2D([0,0], [0,1], label=r'$\textrm{Train}$', ls="-", color='k')
+    siglab = Line2D([0,0],[0,1], label=labels["sig"], ls="-",color=colors["sig"])
+    bblab = Line2D([0,0],[0,1], label=labels["bb"], ls="-",color=colors["bb"])
+    cclab = Line2D([0,0],[0,1], label=labels["cc"], ls="-",color=colors["cc"])
+    sslab = Line2D([0,0],[0,1], label=labels["ss"], ls="-",color=colors["ss"])
+    udlab = Line2D([0,0],[0,1], label=labels["ud"], ls="-",color=colors["ud"])
+    handlist = [trainlab,testlab,siglab,bblab,cclab,sslab,udlab]
+    ax.legend(handles=handlist, frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="lower left")
 
     fig.savefig("Train_Results/Overtrain/Naive_withMoreData_allModes.pdf")
-    
+    '''
 
 
 
@@ -221,6 +273,12 @@ def main():
                #Vertex related
                "EVT_ThrustEmin_NDV","EVT_ThrustEmax_NDV","EVT_dPV2DVmin","EVT_dPV2DVmax","EVT_dPV2DVave",
                "EVT_NtracksPV","EVT_NVertex",
+
+               #Strange vertices related
+               #"nVertex_sighemi_2pi","nVertex_sighemi_ppi",
+               #"TheVertex_sighemi_2pi_mass","TheVertex_sighemi_ppi_mass",
+               #"TheVertex_sighemi_2pi_r","TheVertex_sighemi_ppi_r","TheVertex_sighemi_2pi_d2PV","TheVertex_sighemi_ppi_d2PV",
+               #"TheVertex_sighemi_2pi_fromPV","TheVertex_sighemi_ppi_fromPV",
                ]
 
     train, test = TrainTest_Samples(VarSet)
