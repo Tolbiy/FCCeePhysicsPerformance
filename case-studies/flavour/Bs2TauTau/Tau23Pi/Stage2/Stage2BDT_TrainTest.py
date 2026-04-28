@@ -12,6 +12,8 @@ import uproot
 import ROOT
 import joblib
 import glob
+import matplotlib.patches as mpatches
+from matplotlib.lines import Line2D
 
 from matplotlib import rc
 rc('font',**{'family':'serif','serif':['Roman']})
@@ -97,26 +99,6 @@ def Train(train):
     print(feature_importances)
     feature_importances.to_json("Feature/feature_importances_NoMass_NoBug.json")
 
-    #Create ROC curves
-    decisions = bdt.predict_proba(x)[:,1]
-
-    # Compute ROC curves and area under the curve
-    fpr, tpr, thresholds = roc_curve(y, decisions)
-    roc_auc = auc(fpr, tpr)
-
-    fig, ax = plt.subplots(figsize=(8,8))
-    plt.plot(tpr, 1-fpr, lw=1.5, color="k", label='ROC (area = %0.3f)'%(roc_auc))
-    plt.plot([0.45, 1.], [0.45, 1.], linestyle="--", color="k", label='50/50')
-    plt.xlim(0.45,1.)
-    plt.ylim(0.45,1.)
-    plt.ylabel('Background rejection',fontsize=30)
-    plt.xlabel('Signal efficiency',fontsize=30)
-    ax.tick_params(axis='both', which='major', labelsize=25)
-    plt.legend(loc="upper left",fontsize=20)
-    plt.grid()
-    plt.tight_layout()
-    fig.savefig(f"ROC/Stage2_BDT_Baseline_NoMass_NoBug.pdf")
-
     print("Writting BDT model")
     #Write it for additional testing
     joblib.dump(bdt, f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoMass_NoBug.joblib")
@@ -140,10 +122,40 @@ def Test(train,test):
     ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb","cc","ss","ud"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
-    fig2.savefig("Feature/Correlation_Baseline_NoMass_NoBug.pdf")
+    fig2.savefig("Feature/Correlation_Baseline_NoBug.pdf")
 
-    bdt = joblib.load(f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoMass_NoBug.joblib")
+    bdt = joblib.load(f"/afs/cern.ch/work/t/tomonnar/public/Bs2TauTau/Stage2/BDT/Models/xgb_bdt_Baseline_NoBug.joblib")
     
+    #Split into class label (y) and training vars (x)
+    #Regroupe all modes to train the BDT
+    train_tot = pd.concat([train[mode] for mode in ["sig","bb","cc","ss","ud"]])
+    y = train_tot["label"]
+    x = train_tot[vars_list]
+    y = y.to_numpy()
+    x = x.to_numpy()
+
+    #Create ROC curves
+    decisions = bdt.predict_proba(x)[:,1]
+
+    # Compute ROC curves and area under the curve
+    fpr, tpr, thresholds = roc_curve(y, decisions)
+    roc_auc = auc(fpr, tpr)
+
+    fig, ax = plt.subplots(figsize=(8,8))
+    plt.plot(fpr, tpr, lw=1.5, color="k", label='ROC (area = %0.3f)'%(roc_auc))
+    plt.plot([0., 1.], [0., 1.], linestyle="--", color="k", label='50/50')
+    plt.xlim(0.,1.)
+    plt.ylim(0.,1.)
+    plt.ylabel('True positive rate',fontsize=30)
+    plt.xlabel('False positive rate',fontsize=30)
+    ax.tick_params(axis='both', which='major', labelsize=25)
+    plt.legend(loc="lower left",fontsize=20)
+    plt.grid()
+    plt.tight_layout()
+    fig.savefig(f"ROC/Stage2_BDT_Baseline_NoBug.pdf")
+
+
+
     #Train-Test comparison
 
     for mode in ["sig","bb","cc","ss","ud"]:
@@ -153,7 +165,36 @@ def Test(train,test):
         test[mode]["BDT"] = bdt.predict_proba(test[mode][vars_list]).tolist()
         test[mode]["BDT"] = test[mode]["BDT"].apply(lambda x: x[1])
 
-    
+    train["bkg"] = pd.concat([train[mode] for mode in ["bb","cc","ss","ud"]])
+    test["bkg"] = pd.concat([test[mode] for mode in ["bb","cc","ss","ud"]])
+
+    BDTHist = {}
+    BDTHist["train_sig"] = np.histogram(train["sig"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["train_bkg"] = np.histogram(train["bkg"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["test_sig"] = np.histogram(test["sig"]["BDT"].to_numpy(),bins=50,range=[0,1])
+    BDTHist["test_bkg"] = np.histogram(test["bkg"]["BDT"].to_numpy(),bins=50,range=[0,1])
+
+    NormHeight = {}
+    NormHeight["train_sig"] = np.array(BDTHist["train_sig"][0])/len(train["sig"]["BDT"].to_numpy())
+    NormHeight["train_bkg"] = np.array(BDTHist["train_bkg"][0])/len(train["bkg"]["BDT"].to_numpy())
+    NormHeight["test_sig"] = np.array(BDTHist["test_sig"][0])/len(test["sig"]["BDT"].to_numpy())
+    NormHeight["test_bkg"] = np.array(BDTHist["test_bkg"][0])/len(test["bkg"]["BDT"].to_numpy())
+
+    fig, ax = plt.subplots()
+    ax.grid(color='grey', linestyle='--', linewidth=0.5, alpha=0.5)
+
+    ax.stairs(NormHeight["train_sig"],BDTHist["train_sig"][1],ls="-",color="firebrick",label="Sig. training")
+    ax.stairs(NormHeight["test_sig"],BDTHist["train_sig"][1],ls="--",color="firebrick",label="Sig. testing")
+    ax.stairs(NormHeight["train_bkg"],BDTHist["train_sig"][1],ls="-",color="steelblue",label="Bkg. training")
+    ax.stairs(NormHeight["test_bkg"],BDTHist["train_sig"][1],ls="--",color="steelblue",label="Bkg. testing")
+
+    ax.set_xlabel(r"$\textrm{BDT Score}$")
+    ax.set_ylabel(r"$\textrm{Normalised Counts}$")
+    ax.set_yscale("log")
+    ax.legend()
+    fig.savefig("Overtrain/Pres_Baseline_NoBug.pdf")
+
+    '''
     cuts = np.linspace(0.0,1.0,100)
     Eff = {}
     
@@ -170,20 +211,20 @@ def Test(train,test):
 
     #Start drawing
 
-    colors = {"sig":"royalblue",
-              "bb": "indigo",
-              "cc": "darkorchid",
-              "ss": "darkviolet",
-              "ud": "mediumorchid",
+    colors = {"sig":"firebrick",
+              "bb": "steelblue",
+              "cc": "goldenrod",
+              "ss": "mediumseagreen",
+              "ud": "slategrey",
              }
 
     linstyle = {"train":"-","test":"--"}
 
-    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow3\pi)",
-              "bb": r"$Z^0\rightarrow b\overline{b}",
-              "cc": r"$Z^0\rightarrow c\overline{c}",
-              "ss": r"$Z^0\rightarrow s\overline{s}",
-              "ud": r"$Z^0\rightarrow u\overline{d}",
+    labels = {"sig":r"$B_s^0\rightarrow \tau^+\tau^- (\tau\rightarrow3\pi^{\pm}\nu_{\tau})$",
+              "bb": r"$Z^0\rightarrow b\overline{b}$",
+              "cc": r"$Z^0\rightarrow c\overline{c}$",
+              "ss": r"$Z^0\rightarrow s\overline{s}$",
+              "ud": r"$Z^0\rightarrow u\overline{d}$",
              }
 
     fig, ax = plt.subplots()
@@ -200,9 +241,21 @@ def Test(train,test):
     ax.set_yscale("log")
 
     #Legend
-    ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
+    #ax.legend(frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="center left", bbox_to_anchor=(0.1,0.2),ncol=2)
 
-    fig.savefig("Overtrain/TrainTest_Baseline_NoMass_NoBug.pdf")
+    #Legend
+    testlab = Line2D([0,0], [0,1], label=r'$\textrm{Test}$', ls="--", color='k')
+    trainlab = Line2D([0,0], [0,1], label=r'$\textrm{Train}$', ls="-", color='k')
+    siglab = Line2D([0,0],[0,1], label=labels["sig"], ls="-",color=colors["sig"])
+    bblab = Line2D([0,0],[0,1], label=labels["bb"], ls="-",color=colors["bb"])
+    cclab = Line2D([0,0],[0,1], label=labels["cc"], ls="-",color=colors["cc"])
+    sslab = Line2D([0,0],[0,1], label=labels["ss"], ls="-",color=colors["ss"])
+    udlab = Line2D([0,0],[0,1], label=labels["ud"], ls="-",color=colors["ud"])
+    handlist = [trainlab,testlab,siglab,bblab,cclab,sslab,udlab]
+    ax.legend(handles=handlist, frameon=True, framealpha=1, fancybox=True, edgecolor='lightgrey', loc="lower left")
+
+    fig.savefig("Overtrain/TrainTest_Baseline_NoBug.pdf")
+    '''
     
 
 
@@ -214,7 +267,10 @@ def main():
     args = parser.parse_args()
 
     #Select a subset of the variables
-    VarSet = ['diTau_Angles', 'diTauPlus_IP', 'diTauPlus_IPV', 'diTauMinus_IP', 'diTauMinus_IPV', 'diTauPlus_Lifetime', 'diTauMinus_Lifetime','Bs_Lifetime', 'Bs_IPV']
+    VarSet = [
+              "diTau_Angles","diTauPlus_IP","diTauPlus_IPV","diTauMinus_IP","diTauMinus_IPV","diTauMinus_rho1mass","diTauMinus_rho2mass",
+              "diTauPlus_rho1mass","diTauPlus_rho2mass","diTauPlus_mass","diTauMinus_mass","diTauPlus_Lifetime","diTauMinus_Lifetime","Bs_Lifetime","Bs_IPV","mDiTau_Vis","DeltaM"
+             ]
 
     train, test = TrainTest_Samples(VarSet)
 
