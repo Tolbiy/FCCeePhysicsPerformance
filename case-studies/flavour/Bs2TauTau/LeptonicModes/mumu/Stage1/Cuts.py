@@ -94,7 +94,7 @@ def Load_RDF(Mode):
     Links = {"bb":"p8_ee_Zbb_ecm91",
              "cc":"p8_ee_Zcc_ecm91",
              "ss":"p8_ee_Zss_ecm91",
-             "ud":"p8_ee_Zcc_ecm91",
+             "ud":"p8_ee_Zud_ecm91",
              "sig":"p8_ee_Zbb_ecm91_EvtGen_Bs2TauTau",
             }
 
