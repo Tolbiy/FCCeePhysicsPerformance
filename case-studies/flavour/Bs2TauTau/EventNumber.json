@@ -1,0 +1,61 @@
+{
+    "analysis_stage1_Leptons_withCuts":{
+        
+        "Comment":"The first tau2l dataset generated, no strange hadron variables",
+        "Channel":"Tau2L",
+        "Exclusive_Signal":"False",
+        
+        "Cuts":["n_genBs2TauTau_Tauminus_lepton > 0 (sig only)", "n_genBs2TauTau_Tauplus_lepton > 0 (sig only)", 
+                "EVT_hasPV==1", "n_lepton > 1", "EVT_ThrustEmin_E < 38", "recoEmiss_e > 10", "EVT_ThrustEmin_Eneutral < 10", 
+                "has_dilepton > 0", "has_dilepton_SameSide > 0", "has_dilepton_SigHemi > 0", "has_dilepton_OppositeCharges > 0", "has_dilepton_Vertex == 0"],
+
+        "Processed":{"sig":10000000, "bb":438738637, "cc":499786495, "ss":489770989, "ud":492658654},
+        "Selected": {"sig":522843,   "bb":2105721,   "cc":6802,      "ss":1416,      "ud":1338}
+    
+    },
+
+    "analysis_stage1_Leptons_withCuts_April26":{
+
+        "Comment":"The second tau2l dataset generated, no strange hadron variables",
+        "Channel":"Tau2L",
+        "Exclusive_Signal":"False",
+
+        "Cuts":["n_genBs2TauTau_Tauminus_lepton > 0 (sig only)", "n_genBs2TauTau_Tauplus_lepton > 0 (sig only)", 
+                "EVT_hasPV==1", "n_lepton > 1", "EVT_ThrustEmin_E < 38", "recoEmiss_e > 10", "EVT_ThrustEmin_Eneutral < 10", 
+                "has_dilepton > 0", "has_dilepton_SameSide > 0", "has_dilepton_SigHemi > 0", "has_dilepton_OppositeCharges > 0", "has_dilepton_Vertex == 0"],
+
+        "Processed":{"sig":10000000, "bb":416827715, "cc":499786495, "ss":479850760, "ud":497658654},
+        "Selected": {"sig":522843,   "bb":2000081,   "cc":6802,      "ss":1393,      "ud":1353}
+   
+    },
+
+    "analysis_stage1_Leptons_withCuts_BRCheck":{
+
+        "Comment":"The dataset generated to check the BR of tau2l from simulation (to be deleted if not already done, the dataset not the numbers)",
+        "Channel":"Tau2L",
+        "Exclusive_Signal":"False",
+
+        "Cuts":["n_genBs2TauTau_Tauminus_lepton > 0 (sig only)", "n_genBs2TauTau_Tauplus_lepton > 0 (sig only)"],
+
+        "Processed":{"sig":10000000},
+        "Selected": {"sig":1266756}
+
+    },
+
+    "analysis_stage1_withSimpleCuts":{
+
+        "Comment":"The tau23pi dataset generated, has a bug not nicely handeled (empty list), so the dataset is recutted before BDT",
+        "Channel":"Tau23Pi",
+        "Exclusive_Signal":"True",
+
+        "Cuts":["EVT_hasPV==1", "EVT_ThrustEmin_NTau23PiCand > 1", "recoEmiss_e > 3.5", "EVT_ThrustEmin_Eneutral < 10", "EVT_ThrustEmin_Nneutral <= 13", "EVT_ThrustEmin_E < 38."],
+
+        "Processed":{"sig":10000000,"bb":434383092,"cc":494686495,"ss":499842440,"ud":497658654},
+        "Selected": {"sig":4544951, "bb":97114,    "cc":2310,     "ss":709,      "ud":414},
+
+        "Cuts_Stage2":["n_diTau > 1"],
+
+        "Selected_Stage2":{"sig":4543897, "bb":90346, "cc":1638, "ss":520, "ud":295}
+
+    }
+}
