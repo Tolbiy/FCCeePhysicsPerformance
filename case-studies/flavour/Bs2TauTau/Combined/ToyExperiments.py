@@ -24,7 +24,7 @@ Tau23pi = 0.0931**2
 
 #Tau->lnunu BR
 Tau2l_PDG = 0.1737**2 + 0.1785**2 + 2*0.1737*0.1785 #from PDG values
-Tau2l_Sim = 1250154/10000000 #from sim, keep in mind the num here includes the hasPV
+Tau2l_Sim = 1266756/10000000 #from sim
 
 #- BR of Z->qq ----------------------------------------------------------------
 BR_qq = {}
@@ -35,9 +35,9 @@ BR_qq["ud"] = 0.6991 - BR_qq["bb"] - BR_qq["cc"] - BR_qq["ss"]
 
 #- Efficiencies of tau2l and tau23pi up to BDT training --------------------------------------------
 
+''' CHECK THE OFFICIAL LIST NOW, ALSO NOT USED
 #bkg eff preBDT (hasPV, Stage1 cuts)
 PreBDTEff = {}
-
 
 PreBDTEff["bb_l"] = 2105721/438738637
 PreBDTEff["cc_l"] = 6802/499786495
@@ -50,25 +50,26 @@ PreBDTEff["ss_3pi"] = 709/499842440
 PreBDTEff["ud_3pi"] = 414/497658654
 
 #sig eff preBDT (hasPV, Stage1 cuts from MC decay selections)
-PreBDTEff["sig_l"] = 522843/1250154 #Warning the sig denom is with hasPV, hence the number should be close but not exact
+PreBDTEff["sig_l"] = 522843/1266756 
 PreBDTEff["sig_3pi"] = 4544951/10000000
+'''
 
 #- Lumi scaling -------------------------------------------------------------------
 
 LumiScale = {}
 
 #split because of corruption
-LumiScale["bb_l"]  = NZ/438738637
+LumiScale["bb_l"]  = NZ/416827715
 LumiScale["cc_l"]  = NZ/499786495
-LumiScale["ss_l"]  = NZ/489770989
-LumiScale["ud_l"]  = NZ/492658654
+LumiScale["ss_l"]  = NZ/479850760
+LumiScale["ud_l"]  = NZ/497658654
 
 LumiScale["bb_3pi"]  = NZ/434383092
 LumiScale["cc_3pi"]  = NZ/494686495
 LumiScale["ss_3pi"]  = NZ/499842440
 LumiScale["ud_3pi"]  = NZ/497658654
 
-LumiScale["sig_l"] = NZ/1250154
+LumiScale["sig_l"] = NZ/1266756
 LumiScale["sig_3pi"] = NZ/10000000
 
 #==================================================================================================================================
@@ -77,6 +78,7 @@ LumiScale["sig_3pi"] = NZ/10000000
 def Load_Files_Hists(var,DataPath,Nbins):
 
     rdf = r.RDataFrame("events",DataPath)
+    #print(f"{DataPath}: {rdf.Count().GetValue()}")
     hm = np.histogram(rdf.AsNumpy([var])[var],bins=Nbins[0],range=(Nbins[1],Nbins[2]))
 
     return hm
@@ -245,9 +247,9 @@ def Draw_Toys(ValDist,Vars,BDTNames):
 
         #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
         Nexp = {}
-        Nexp["sig"] = 2901
+        Nexp["sig"] = 3055
         Nexp["bkg_3pi"] = 17568598
-        Nexp["bkg_l"] = 666333537
+        Nexp["bkg_l"] = 656450081
 
         #Compute the pulls
         Pulls_sig = (np.array(ValDist[var]["Best_Sig"])-Nexp["sig"])/np.array(ValDist[var]['Best_Sig']).std()
@@ -275,7 +277,7 @@ def Draw_Toys(ValDist,Vars,BDTNames):
         axs[2].text(0.02,0.98,r"$N_{\rm bkg}^{\tau\to\ell}="+f"{int(np.array(ValDist[var]['Best_Bkg_l']).mean())}\pm"+f"{int(np.array(ValDist[var]['Best_Bkg_l']).std())}"+r"$",size="large",transform=axs[2].transAxes,ha="left",va="top")
 
         axs[0].text(1.1,1.1,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0].transAxes,ha="center",va="center")
-        fig.savefig(f"Pres_{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")
+        fig.savefig(f"{BDTNames[0]}-{BDTNames[1]}_{var}_Seed5.pdf")
 
 
         #fig, axs = plt.subplots(3,2)
@@ -362,7 +364,7 @@ def Do_Toys(Vars,BDTNames,Bins,BkgEff,SigEff,NToy):
         Values[var] = {"Best_Sig":[],"Sigma_Sig":[],"Best_Bkg_l":[],"Sigma_Bkg_l":[],"Best_Bkg_3pi":[],"Sigma_Bkg_3pi":[]}
     print("Start producing and fitting toys...\n") 
     for i in tqdm(np.arange(0,NToy,1)):
-        Data = Make_Data(h,Vars,BkgEff,SigEff,10*i)
+        Data = Make_Data(h,Vars,BkgEff,SigEff,i+15000)
         #print("===========================================")
         #print(Data["MVA2"][0])
         popt, pcov = Fitter(Data,Sig,Bkg,Vars) #, Chi2
@@ -370,6 +372,10 @@ def Do_Toys(Vars,BDTNames,Bins,BkgEff,SigEff,NToy):
         #print(popt)
 
         for var in Vars:
+
+            #Check for failed fit
+            if np.isinf(popt[var][0]) or np.isinf(popt[var][1]) or np.isinf(pcov[var][0][0]) or np.isinf(pcov[var][1][1]): continue
+
             Values[var]["Best_Sig"].append(int(np.sum(popt[var][0]*Sig["l_"+var][0] + popt[var][0]*Sig["3pi_"+var][0])))
             Values[var]["Best_Bkg_l"].append(int(np.sum(popt[var][1]*Bkg["l_"+var][0])))
             Values[var]["Best_Bkg_3pi"].append(int(np.sum(popt[var][2]*Bkg["3pi_"+var][0])))
