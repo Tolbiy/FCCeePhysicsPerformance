@@ -21,7 +21,7 @@ Bs2TauTau_BR = 7.73e-7 #SM estimate for Bs->TauTau (from the LHCb paper that sea
 
 #Tau->lnunu BR
 Tau2l_PDG = 0.1737**2 + 0.1785**2 + 2*0.1737*0.1785 #from PDG values
-Tau2l_Sim = 1250154/10000000 #from sim, keep in mind the num here includes the hasPV
+Tau2l_Sim = 1266756/10000000 #from sim
 
 #- BR of Z->qq ----------------------------------------------------------------
 BR_qq = {}
@@ -39,12 +39,12 @@ PreBDTEff["cc"] = 6802/499786495
 PreBDTEff["ss"] = 1416/489770989
 PreBDTEff["ud"] = 1338/492658654
 #sig eff preBDT (hasPV, Stage1 cuts from MC decay selections)
-PreBDTEff["sig"] = 522843/1250154 #Warning the sig denom is with hasPV, hence the number should be close but not exact
+PreBDTEff["sig"] = 522843/1266756 
 
 #- Lumi scaling ----------------------------------------------------------------
 
 LumiScale = {}
-LumiScale["sig"] = NZ/1250154 #if only a fraction of the signal, the 10M should be changed to the fraction of total number (for instance if 10 files instead of 20, change it to 5M)
+LumiScale["sig"] = NZ/1266756 #if only a fraction of the signal, the 10M should be changed to the fraction of total number (for instance if 10 files instead of 20, change it to 5M)
 LumiScale["bb"]  = NZ/438738637
 LumiScale["cc"]  = NZ/499786495
 LumiScale["ss"]  = NZ/489770989
@@ -84,7 +84,7 @@ def Make_Shapes(hlist,Vars):
         htemp = {}
         for mode in ["bb","cc","ss","ud"]:
             htemp[mode] = hlist[mode+"_"+var][0]*LumiScale[mode]*BR_qq[mode]
-        htemp["sig"] = hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim #Scaling the sig is technically not necessary
+        htemp["sig"] = hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim
         
         #Temporary solution to fit a realistic dataset (with the expected total number of events) while not all samples have been produced
         #Let's amplify the bb bkg (main source of the shape in any case) such that the background accounts for the total amount of Z
@@ -178,9 +178,10 @@ def Draw_Toys(ValDist,Vars,BDTName):
     for var in Vars:
 
         #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
+        #REMOVE THE HARD CODED
         Nexp = {}
-        Nexp["sig"] = 2651
-        Nexp["bkg"] = 666333537
+        Nexp["sig"] = 2805
+        Nexp["bkg"] = 623707035
 
         #Compute the pulls
         Pulls_sig = (np.array(ValDist[var]["Best_Sig"])-Nexp["sig"])/np.array(ValDist[var]['Best_Sig']).std()
@@ -218,7 +219,7 @@ def Draw_Toys(ValDist,Vars,BDTName):
 
         axs[0,0].text(1.1,1.2,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
 
-        fig.savefig(f"{BDTName}_{var}.pdf")    
+        fig.savefig(f"{BDTName}_{var}_Seed20.pdf")    
             
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -239,6 +240,10 @@ def Do_Toys(Vars,BDTName,Bins,BkgEff,SigEff,NToy):
         popt, pcov, Chi2 = Fitter(Data,Sig,Bkg,Vars)
         
         for var in Vars:
+            
+            #Check for failed fit
+            if np.isinf(popt[var][0]) or np.isinf(popt[var][1]) or np.isinf(pcov[var][0][0]) or np.isinf(pcov[var][1][1]): continue
+
             Values[var]["Best_Sig"].append(int(np.sum(popt[var][0]*Sig[var][0])))
             Values[var]["Best_Bkg"].append(int(np.sum(popt[var][1]*Bkg[var][0])))
 
