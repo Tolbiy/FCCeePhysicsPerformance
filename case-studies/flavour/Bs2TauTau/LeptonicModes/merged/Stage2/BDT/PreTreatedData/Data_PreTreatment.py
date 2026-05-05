@@ -137,6 +137,11 @@ r.gInterpreter.Declare('''
 
     }
 
+    int Get_nInd(ROOT::VecOps::RVec<int> inds, int n){
+        if (inds.size() < n) return -1;
+        else return inds.at(n-1);
+    }
+
 ''')
 
 Links = {"bb": "p8_ee_Zbb_ecm91",
@@ -155,31 +160,10 @@ def RDF_Treatment(rdf):
 
     #------ The strange hadron vertices info --------------------
 
-    rdf = rdf.Define("Vertex_sighemi_2pi_ind","Find_Vertex2Daughters(Vertex_sighemi_RECO_PDG,Vertex_sighemi_RECO_charge,211,211)")
+    rdf = rdf.Define("Vertex_sighemi_2pi_ind"       ,"Find_Vertex2Daughters(Vertex_sighemi_RECO_PDG,Vertex_sighemi_RECO_charge,211,211)")
     rdf = rdf.Define("Vertex_sighemi_ppi_ind","Find_Vertex2Daughters(Vertex_sighemi_RECO_PDG,Vertex_sighemi_RECO_charge,211,2212)")
     rdf = rdf.Define("nVertex_sighemi_2pi","Vertex_sighemi_2pi_ind.size()")
     rdf = rdf.Define("nVertex_sighemi_ppi","Vertex_sighemi_ppi_ind.size()")
-    
-    rdf = rdf.Define("TheVertex_sighemi_2pi","Select_Vertex2Daughters_ind(Vertex_sighemi_2pi_ind,Vertex_sighemi_x,Vertex_sighemi_y)")
-    rdf = rdf.Define("TheVertex_sighemi_ppi","Select_Vertex2Daughters_ind(Vertex_sighemi_ppi_ind,Vertex_sighemi_x,Vertex_sighemi_y)")
-    
-    rdf = rdf.Define("Vertex_sighemi_2pi_mass","Find_Vertex2Daughters_MassDistrib(Vertex_sighemi_mass,Vertex_sighemi_2pi_ind)")
-    rdf = rdf.Define("Vertex_sighemi_ppi_mass","Find_Vertex2Daughters_MassDistrib(Vertex_sighemi_mass,Vertex_sighemi_ppi_ind)")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_mass","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_mass.at(TheVertex_sighemi_2pi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_mass","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_mass.at(TheVertex_sighemi_ppi); else return float(-999.9);")
-
-    rdf = rdf.Define("Vertex_sighemi_2pi_r","Compute_Vertex2Daughters_r(Vertex_sighemi_x,Vertex_sighemi_y,Vertex_sighemi_2pi_ind)")
-    rdf = rdf.Define("Vertex_sighemi_ppi_r","Compute_Vertex2Daughters_r(Vertex_sighemi_x,Vertex_sighemi_y,Vertex_sighemi_ppi_ind)")
-    
-    rdf = rdf.Define("TheVertex_sighemi_2pi_x","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_x.at(TheVertex_sighemi_2pi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_x","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_x.at(TheVertex_sighemi_ppi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_y","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_y.at(TheVertex_sighemi_2pi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_y","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_y.at(TheVertex_sighemi_ppi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_z","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_z.at(TheVertex_sighemi_2pi); else return float(-999.9);")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_z","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_z.at(TheVertex_sighemi_ppi); else return float(-999.9);")
-
-    rdf = rdf.Define("TheVertex_sighemi_2pi_r","sqrt(TheVertex_sighemi_2pi_x*TheVertex_sighemi_2pi_x + TheVertex_sighemi_2pi_y*TheVertex_sighemi_2pi_y)")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_r","sqrt(TheVertex_sighemi_ppi_x*TheVertex_sighemi_ppi_x + TheVertex_sighemi_ppi_y*TheVertex_sighemi_ppi_y)")
 
     rdf = rdf.Define("PV_x_","Vertex_x [Vertex_isPV > 0]")
     rdf = rdf.Define("PV_x","PV_x_.at(0)")
@@ -187,26 +171,80 @@ def RDF_Treatment(rdf):
     rdf = rdf.Define("PV_y","PV_y_.at(0)")
     rdf = rdf.Define("PV_z_","Vertex_z [Vertex_isPV > 0]")
     rdf = rdf.Define("PV_z","PV_z_.at(0)")
-    
-    rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_x","TheVertex_sighemi_2pi_x-PV_x")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_x","TheVertex_sighemi_ppi_x-PV_x")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_y","TheVertex_sighemi_2pi_y-PV_y")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_y","TheVertex_sighemi_ppi_y-PV_y")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_z","TheVertex_sighemi_2pi_z-PV_z")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_z","TheVertex_sighemi_ppi_z-PV_z")
-    
-    rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV","sqrt(TheVertex_sighemi_2pi_d2PV_x*TheVertex_sighemi_2pi_d2PV_x + TheVertex_sighemi_2pi_d2PV_y*TheVertex_sighemi_2pi_d2PV_y + TheVertex_sighemi_2pi_d2PV_z*TheVertex_sighemi_2pi_d2PV_z)")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV","sqrt(TheVertex_sighemi_ppi_d2PV_x*TheVertex_sighemi_ppi_d2PV_x + TheVertex_sighemi_ppi_d2PV_y*TheVertex_sighemi_ppi_d2PV_y + TheVertex_sighemi_ppi_d2PV_z*TheVertex_sighemi_ppi_d2PV_z)")
 
-    rdf = rdf.Define("TheVertex_sighemi_2pi_px","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_px.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_px","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_px.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_py","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_py.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_py","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_py.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
-    rdf = rdf.Define("TheVertex_sighemi_2pi_pz","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_pz.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_pz","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_pz.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    for dectype in ["2pi","ppi"]:
+        for i in [1,2,3]:
+            rdf = rdf.Define("Vertex_sighemi_"+dectype+f"_ind{i}","Get_nInd(Vertex_sighemi_"+dectype+f"_ind,{i})")
+            
+            rdf = rdf.Define("V"+dectype+f"_{i}_mass","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_mass.at(Vertex_sighemi_"+dectype+f"_ind{i}); else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_x",   "if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_x.at(Vertex_sighemi_"+dectype+f"_ind{i}); else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_y",   "if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_y.at(Vertex_sighemi_"+dectype+f"_ind{i}); else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_z",   "if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_z.at(Vertex_sighemi_"+dectype+f"_ind{i}); else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_r",   "if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return sqrt(pow(V"+dectype+f"_{i}_x,float(2.0)) + pow(V"+dectype+f"_{i}_y,float(2.0))); else return float(-999.9);")
 
-    rdf = rdf.Define("TheVertex_sighemi_2pi_fromPV","Find_Vertex2Daughters_PV_DOCA(TheVertex_sighemi_2pi_x,TheVertex_sighemi_2pi_px,TheVertex_sighemi_2pi_y,TheVertex_sighemi_2pi_py,TheVertex_sighemi_2pi_z,TheVertex_sighemi_2pi_pz,PV_x,PV_y,PV_z)")
-    rdf = rdf.Define("TheVertex_sighemi_ppi_fromPV","Find_Vertex2Daughters_PV_DOCA(TheVertex_sighemi_ppi_x,TheVertex_sighemi_ppi_px,TheVertex_sighemi_ppi_y,TheVertex_sighemi_ppi_py,TheVertex_sighemi_ppi_z,TheVertex_sighemi_ppi_pz,PV_x,PV_y,PV_z)")
+            rdf = rdf.Define("V"+dectype+f"_{i}_d2PV_x","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return V"+dectype+f"_{i}_x-PV_x; else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_d2PV_y","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return V"+dectype+f"_{i}_y-PV_y; else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_d2PV_z","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return V"+dectype+f"_{i}_z-PV_z; else return float(-999.9);")
+            rdf = rdf.Define("V"+dectype+f"_{i}_d2PV","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return sqrt(pow(V"+dectype+f"_{i}_d2PV_x,float(2.0)) + pow(V"+dectype+f"_{i}_d2PV_y,float(2.0)) + pow(V"+dectype+f"_{i}_d2PV_z,float(2.0))); else return float(-999.9);")
+
+            rdf = rdf.Define("V"+dectype+f"_{i}_px","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_RECO_px.at(Vertex_sighemi_"+dectype+f"_ind{i}"+"); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+            rdf = rdf.Define("V"+dectype+f"_{i}_py","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_RECO_py.at(Vertex_sighemi_"+dectype+f"_ind{i}"+"); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+            rdf = rdf.Define("V"+dectype+f"_{i}_pz","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Vertex_sighemi_RECO_pz.at(Vertex_sighemi_"+dectype+f"_ind{i}"+"); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+
+            rdf = rdf.Define("V"+dectype+f"_{i}_fromPV","if (Vertex_sighemi_"+dectype+f"_ind{i}>-1) return Find_Vertex2Daughters_PV_DOCA(V"+dectype+f"_{i}_x,V"+dectype+f"_{i}_px,V"+dectype+f"_{i}_y,V"+dectype+f"_{i}_py,V"+dectype+f"_{i}_z,V"+dectype+f"_{i}_pz,PV_x,PV_y,PV_z); else return float(-999.9);")
+
+
+
+
+
+    
+    #rdf = rdf.Define("TheVertex_sighemi_2pi","Select_Vertex2Daughters_ind(Vertex_sighemi_2pi_ind,Vertex_sighemi_x,Vertex_sighemi_y)")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi","Select_Vertex2Daughters_ind(Vertex_sighemi_ppi_ind,Vertex_sighemi_x,Vertex_sighemi_y)")
+    
+    #rdf = rdf.Define("Vertex_sighemi_2pi_mass","Find_Vertex2Daughters_MassDistrib(Vertex_sighemi_mass,Vertex_sighemi_2pi_ind)")
+    #rdf = rdf.Define("Vertex_sighemi_ppi_mass","Find_Vertex2Daughters_MassDistrib(Vertex_sighemi_mass,Vertex_sighemi_ppi_ind)")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_mass","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_mass.at(TheVertex_sighemi_2pi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_mass","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_mass.at(TheVertex_sighemi_ppi); else return float(-999.9);")
+
+    #rdf = rdf.Define("Vertex_sighemi_2pi_r","Compute_Vertex2Daughters_r(Vertex_sighemi_x,Vertex_sighemi_y,Vertex_sighemi_2pi_ind)")
+    #rdf = rdf.Define("Vertex_sighemi_ppi_r","Compute_Vertex2Daughters_r(Vertex_sighemi_x,Vertex_sighemi_y,Vertex_sighemi_ppi_ind)")
+    
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_x","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_x.at(TheVertex_sighemi_2pi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_x","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_x.at(TheVertex_sighemi_ppi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_y","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_y.at(TheVertex_sighemi_2pi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_y","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_y.at(TheVertex_sighemi_ppi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_z","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_z.at(TheVertex_sighemi_2pi); else return float(-999.9);")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_z","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_z.at(TheVertex_sighemi_ppi); else return float(-999.9);")
+
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_r","sqrt(TheVertex_sighemi_2pi_x*TheVertex_sighemi_2pi_x + TheVertex_sighemi_2pi_y*TheVertex_sighemi_2pi_y)")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_r","sqrt(TheVertex_sighemi_ppi_x*TheVertex_sighemi_ppi_x + TheVertex_sighemi_ppi_y*TheVertex_sighemi_ppi_y)")
+
+    #rdf = rdf.Define("PV_x_","Vertex_x [Vertex_isPV > 0]")
+    #rdf = rdf.Define("PV_x","PV_x_.at(0)")
+    #rdf = rdf.Define("PV_y_","Vertex_y [Vertex_isPV > 0]")
+    #rdf = rdf.Define("PV_y","PV_y_.at(0)")
+    #rdf = rdf.Define("PV_z_","Vertex_z [Vertex_isPV > 0]")
+    #rdf = rdf.Define("PV_z","PV_z_.at(0)")
+    
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_x","TheVertex_sighemi_2pi_x-PV_x")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_x","TheVertex_sighemi_ppi_x-PV_x")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_y","TheVertex_sighemi_2pi_y-PV_y")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_y","TheVertex_sighemi_ppi_y-PV_y")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV_z","TheVertex_sighemi_2pi_z-PV_z")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV_z","TheVertex_sighemi_ppi_z-PV_z")
+    
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_d2PV","sqrt(TheVertex_sighemi_2pi_d2PV_x*TheVertex_sighemi_2pi_d2PV_x + TheVertex_sighemi_2pi_d2PV_y*TheVertex_sighemi_2pi_d2PV_y + TheVertex_sighemi_2pi_d2PV_z*TheVertex_sighemi_2pi_d2PV_z)")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_d2PV","sqrt(TheVertex_sighemi_ppi_d2PV_x*TheVertex_sighemi_ppi_d2PV_x + TheVertex_sighemi_ppi_d2PV_y*TheVertex_sighemi_ppi_d2PV_y + TheVertex_sighemi_ppi_d2PV_z*TheVertex_sighemi_ppi_d2PV_z)")
+
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_px","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_px.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_px","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_px.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_py","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_py.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_py","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_py.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_pz","if (TheVertex_sighemi_2pi>-1) return Vertex_sighemi_RECO_pz.at(TheVertex_sighemi_2pi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_pz","if (TheVertex_sighemi_ppi>-1) return Vertex_sighemi_RECO_pz.at(TheVertex_sighemi_ppi); else return ROOT::VecOps::RVec<float>({-999.9,-999.9});")
+
+    #rdf = rdf.Define("TheVertex_sighemi_2pi_fromPV","Find_Vertex2Daughters_PV_DOCA(TheVertex_sighemi_2pi_x,TheVertex_sighemi_2pi_px,TheVertex_sighemi_2pi_y,TheVertex_sighemi_2pi_py,TheVertex_sighemi_2pi_z,TheVertex_sighemi_2pi_pz,PV_x,PV_y,PV_z)")
+    #rdf = rdf.Define("TheVertex_sighemi_ppi_fromPV","Find_Vertex2Daughters_PV_DOCA(TheVertex_sighemi_ppi_x,TheVertex_sighemi_ppi_px,TheVertex_sighemi_ppi_y,TheVertex_sighemi_ppi_py,TheVertex_sighemi_ppi_z,TheVertex_sighemi_ppi_pz,PV_x,PV_y,PV_z)")
 
     return rdf
 
@@ -264,9 +302,16 @@ def Do_RDF_PreTreatment(amount):
 
                #Strange vertices related
                "nVertex_sighemi_2pi","nVertex_sighemi_ppi",
-               "TheVertex_sighemi_2pi_mass","TheVertex_sighemi_ppi_mass",
-               "TheVertex_sighemi_2pi_r","TheVertex_sighemi_ppi_r","TheVertex_sighemi_2pi_d2PV","TheVertex_sighemi_ppi_d2PV",
-               "TheVertex_sighemi_2pi_fromPV","TheVertex_sighemi_ppi_fromPV",
+               "V2pi_1_mass","V2pi_2_mass","V2pi_3_mass","Vppi_1_mass","Vppi_2_mass","Vppi_3_mass",
+               "V2pi_1_r","V2pi_2_r","V2pi_3_r","Vppi_1_r","Vppi_2_r","Vppi_3_r",
+               "V2pi_1_d2PV","V2pi_2_d2PV","V2pi_3_d2PV","Vppi_1_d2PV","Vppi_2_d2PV","Vppi_3_d2PV",
+               "V2pi_1_fromPV","V2pi_2_fromPV","V2pi_3_fromPV","Vppi_1_fromPV","Vppi_2_fromPV","Vppi_3_fromPV",
+               
+               
+               #"nVertex_sighemi_2pi","nVertex_sighemi_ppi",
+               #"TheVertex_sighemi_2pi_mass","TheVertex_sighemi_ppi_mass",
+               #"TheVertex_sighemi_2pi_r","TheVertex_sighemi_ppi_r","TheVertex_sighemi_2pi_d2PV","TheVertex_sighemi_ppi_d2PV",
+               #"TheVertex_sighemi_2pi_fromPV","TheVertex_sighemi_ppi_fromPV",
                ]
 
                #Same as EVT_NVertex
@@ -284,7 +329,7 @@ def Do_RDF_PreTreatment(amount):
     RDFs = {}
     for mode in ["sig","bb","cc","ss","ud"]: #READD AFTER PRODUCITON
         RDFs[mode] = Load_RDF(mode,amount)
-        RDFs[mode].Snapshot("events",f"{mode}/StrangeHadronBkg.root",columns)
+        RDFs[mode].Snapshot("events",f"{mode}/StrangeHadronBkg_moreCol.root",columns)
 
 #=========================================================================
 

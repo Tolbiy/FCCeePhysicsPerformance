@@ -35,7 +35,7 @@ def TrainTest_Samples(vars):
     print("Loading PreTreated DF...")
     for mode in modes:
 
-        dfs[mode] = uproot.open(f"{path}/{mode}/Naive_withMoreData.root:events").arrays(library="pd")#.sample(n=200000,random_state=12)
+        dfs[mode] = uproot.open(f"{path}/{mode}/StrangeHadronBkg_moreCol.root:events").arrays(library="pd")#.sample(n=200000,random_state=12)
         dfs[mode] = dfs[mode][vars]
         if mode == "sig":
             dfs[mode]["label"] = 1
@@ -72,14 +72,14 @@ def Train(train):
     config_dict = {
             "n_estimators": 1000,
             "learning_rate": 0.3,
-            "max_depth": 3,
-            #"min_child_weight": 50,
+            "max_depth": 5,
+            "min_child_weight": 100,
             }
 
     bdt = xgb.XGBClassifier(n_estimators=config_dict["n_estimators"],
                             max_depth=config_dict["max_depth"],
                             learning_rate=config_dict["learning_rate"],
-                            #min_child_weight=config_dict["min_child_weight"]
+                            min_child_weight=config_dict["min_child_weight"]
                             )
 
     #Fit the model
@@ -92,14 +92,14 @@ def Train(train):
 
     print("Feature importances")
     print(feature_importances)
-    feature_importances.to_json("Train_Results/Feature/Naive_withMoreData_allModes.json")
+    feature_importances.to_json("Train_Results/Feature/StrangeHadronBkg_moreCol.json")
 
     print("Writting BDT model")
     #Write it for additional testing
-    joblib.dump(bdt, f"Train_Results/Models/Naive_withMoreData_allModes.joblib")
+    joblib.dump(bdt, f"Train_Results/Models/StrangeHadronBkg_moreCol.joblib")
     
     #Write the model to a ROOT file on EOS, for application elsewhere in FCCAnalyses
-    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "Naive_withMoreData_allModes", f"Train_Results/Models/Naive_withMoreData_allModes.root", num_inputs=len(vars_list)) 
+    ROOT.TMVA.Experimental.SaveXGBoost(bdt, "StrangeHadronBkg_moreCol", f"Train_Results/Models/StrangeHadronBkg_moreCol.root", num_inputs=len(vars_list)) 
     #To add it to the dataset column will need these columns -> add them in the Stage2 script
 
 #_____________________________________________________________________________________________________________________________________________  
@@ -117,9 +117,9 @@ def Test(train,test):
     ax2.matshow(pd.concat([train[mode][vars_list] for mode in ["sig","bb"]]).corr(),vmin=-1.0,vmax=1.0)
     ax2.set_xticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,rotation=90,size="small")
     ax2.set_yticks(ticks=np.arange(0,len(vars_list),1),labels=vars_list,size="small")
-    fig2.savefig("Train_Results/Correlation/Naive_withMoreData_allModes.pdf")
+    fig2.savefig("Train_Results/Correlation/StrangeHadronBkg_moreCol.pdf")
 
-    bdt = joblib.load(f"Train_Results/Models/Naive_withMoreData_allModes.joblib")
+    bdt = joblib.load(f"Train_Results/Models/StrangeHadronBkg_moreCol.joblib")
     
     #Create ROC curves
     
@@ -149,7 +149,7 @@ def Test(train,test):
     plt.legend(loc="lower right",fontsize=20)
     plt.grid()
     plt.tight_layout()
-    fig.savefig(f"Train_Results/ROC/Naive_withMoreData_allModes.pdf")
+    fig.savefig(f"Train_Results/ROC/StrangeHadronBkg_moreCol.pdf")
 
 
     #Train-Test comparison
@@ -186,7 +186,7 @@ def Test(train,test):
     ax.set_xlabel(r"$\textrm{BDT Score}$")
     ax.set_ylabel(r"$\textrm{Normalised Counts}$")
     ax.legend()
-    fig.savefig("Train_Results/Overtrain/Pres_Naive_withMoreData_allModes.pdf")
+    fig.savefig("Train_Results/Overtrain/StrangeHadronBkg_moreCol.pdf")
 
     '''
     
@@ -275,6 +275,12 @@ def main():
                "EVT_NtracksPV","EVT_NVertex",
 
                #Strange vertices related
+               "nVertex_sighemi_2pi","nVertex_sighemi_ppi",
+               "V2pi_1_mass","V2pi_2_mass","V2pi_3_mass","Vppi_1_mass","Vppi_2_mass","Vppi_3_mass",
+               "V2pi_1_r","V2pi_2_r","V2pi_3_r","Vppi_1_r","Vppi_2_r","Vppi_3_r",
+               "V2pi_1_d2PV","V2pi_2_d2PV","V2pi_3_d2PV","Vppi_1_d2PV","Vppi_2_d2PV","Vppi_3_d2PV",
+               "V2pi_1_fromPV","V2pi_2_fromPV","V2pi_3_fromPV","Vppi_1_fromPV","Vppi_2_fromPV","Vppi_3_fromPV",
+               
                #"nVertex_sighemi_2pi","nVertex_sighemi_ppi",
                #"TheVertex_sighemi_2pi_mass","TheVertex_sighemi_ppi_mass",
                #"TheVertex_sighemi_2pi_r","TheVertex_sighemi_ppi_r","TheVertex_sighemi_2pi_d2PV","TheVertex_sighemi_ppi_d2PV",
