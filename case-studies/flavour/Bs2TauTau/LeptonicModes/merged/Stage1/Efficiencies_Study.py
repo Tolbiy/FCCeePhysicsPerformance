@@ -17,7 +17,7 @@ BR_qq["ss"] = 0.1560
 BR_qq["ud"] = 0.6991 - BR_qq["bb"] - BR_qq["cc"] - BR_qq["ss"]
 
 Total = {}
-Total["sig"] = 1250154
+Total["sig"] = 1266756 #This is the sim number but the PDG value would be 1240448 (12.4%)
 Total["bb"]  = 438738637
 Total["cc"]  = 499786495
 Total["ss"]  = 489770989
