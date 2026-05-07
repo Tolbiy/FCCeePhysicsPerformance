@@ -14,6 +14,21 @@
     
     },
 
+    "analysis_stage1_Leptons_withCuts_bkgStudies":{
+
+        "Comment":"First dataset produced to study strange hadron vertices (extended to 100% of the samples in analysis_stage1_Leptons_withCuts_April26)",
+        "Channel":"Tau2L",
+        "Exclusive_Signal":"False",
+
+        "Cuts":["n_genBs2TauTau_Tauminus_lepton > 0 (sig only)", "n_genBs2TauTau_Tauplus_lepton > 0 (sig only)", 
+                "EVT_hasPV==1", "n_lepton > 1", "EVT_ThrustEmin_E < 38", "recoEmiss_e > 10", "EVT_ThrustEmin_Eneutral < 10", 
+                "has_dilepton > 0", "has_dilepton_SameSide > 0", "has_dilepton_SigHemi > 0", "has_dilepton_OppositeCharges > 0", "has_dilepton_Vertex == 0"],
+
+        "Processed":{"sig":10000000, "bb":4400000, "cc":5094560, "ss":5063527, "ud":4978435},
+        "Selected": {"sig":522843,   "bb":21375,   "cc":69,      "ss":19,      "ud":18}
+   
+    },
+
     "analysis_stage1_Leptons_withCuts_April26":{
 
         "Comment":"The second tau2l dataset generated, no strange hadron variables",
@@ -42,13 +57,28 @@
 
     },
 
+    "analysis_stage1_Leptons_withCuts_ExclBkgSurvey":{
+
+        "Comment":"Simplfied and optimised dataset to check the BDT score of various exclusive background (contains BDT columns and exclusive background survey columns)",
+        "Channel":"Tau2L",
+        "Exclusive_Signal":"False",
+
+        "Cuts":["EVT_hasPV==1", "n_lepton > 1", "EVT_ThrustEmin_E < 38", "recoEmiss_e > 10", "EVT_ThrustEmin_Eneutral < 10", 
+                "has_dilepton > 0", "has_dilepton_SameSide > 0", "has_dilepton_SigHemi > 0", "has_dilepton_OppositeCharges > 0", "has_dilepton_Vertex == 0"],
+
+        "Processed":{"bb":4400000, "cc":5094560, "ss":5063527, "ud":4978435},
+        "Selected": {"bb":21375,   "cc":69,      "ss":19,      "ud":18}
+   
+    },
+
     "analysis_stage1_withSimpleCuts":{
 
         "Comment":"The tau23pi dataset generated, has a bug not nicely handeled (empty list), so the dataset is recutted before BDT",
         "Channel":"Tau23Pi",
         "Exclusive_Signal":"True",
 
-        "Cuts":["EVT_hasPV==1", "EVT_ThrustEmin_NTau23PiCand > 1", "recoEmiss_e > 3.5", "EVT_ThrustEmin_Eneutral < 10", "EVT_ThrustEmin_Nneutral <= 13", "EVT_ThrustEmin_E < 38."],
+        "Cuts":["EVT_hasPV==1", "EVT_ThrustEmin_NTau23PiCand > 1", "recoEmiss_e > 3.5", "EVT_ThrustEmin_Eneutral < 10", 
+                "EVT_ThrustEmin_Nneutral <= 13", "EVT_ThrustEmin_E < 38."],
 
         "Processed":{"sig":10000000,"bb":434383092,"cc":494686495,"ss":499842440,"ud":497658654},
         "Selected": {"sig":4544951, "bb":97114,    "cc":2310,     "ss":709,      "ud":414},
