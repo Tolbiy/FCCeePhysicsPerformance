@@ -87,5 +87,17 @@
 
         "Selected_Stage2":{"sig":4543897, "bb":90346, "cc":1638, "ss":520, "ud":295}
 
+    },
+
+    "analysis_stage1_ell1pi":{
+        "Comment":"The (Tau2Ell)(Tau21Pi) dataset with limited stat for event-level and candidate selections",
+        "Channel":"(Tau2Ell)(Tau21Pi)",
+        "Exclusive_Signal":"False",
+
+        "Cut":["EVT_hasPV==1",
+               "(n_genBs2TauTau_Tauminus_1pi > 0 && n_genBs2TauTau_Tauplus_ell > 0) || (n_genBs2TauTau_Tauplus_1pi > 0 && n_genBs2TauTau_Tauminus_ell > 0) (sig only)"],
+
+        "Processed":{"sig":0,"bb":0,"cc":0,"ss":0,"ud":0},
+        "Selected":{"sig":0,"bb":0,"cc":0,"ss":0,"ud":0}
     }
 }
