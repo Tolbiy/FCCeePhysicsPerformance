@@ -80,7 +80,7 @@ def Make_Shapes(hlist,Vars):
         htemp = {}
         for mode in ["bb","cc","ss","ud"]:
             htemp[mode] = hlist[mode+"_"+var][0]*LumiScale[mode]*BR_qq[mode]
-        htemp["sig"] = hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau23Pi**2 #Scaling the sig is technically not necessary
+        htemp["sig"] = hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*2*Bs_had*Bs2TauTau_BR*Tau23Pi**2 #Scaling the sig is technically not necessary
         
         #Temporary solution to fit a realistic dataset (with the expected total number of events) while not all samples have been produced
         #Let's amplify the bb bkg (main source of the shape in any case) such that the background accounts for the total amount of Z
@@ -109,7 +109,7 @@ def Make_Data(hlist,Vars,bkg_dummyEff,sig_dummyEff,seed):
         htemp = {}
         for mode in ["bb","cc","ss","ud"]:
             htemp[mode] = np.rint(hlist[mode+"_"+var][0]*LumiScale[mode]*BR_qq[mode]*bkg_dummyEff) #Round to the int, still a float type hope it works fine with the Poisson toy
-        htemp["sig"] = np.rint(hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau23Pi**2*sig_dummyEff)
+        htemp["sig"] = np.rint(hlist["sig_"+var][0]*LumiScale["sig"]*BR_qq["bb"]*2*Bs_had*Bs2TauTau_BR*Tau23Pi**2*sig_dummyEff)
 
         #Temporary solution to fit a realistic dataset (with the expected total number of events) while not all samples have been produced
         #Let's amplify the bb bkg (main source of the shape in any case) such that the background accounts for the total amount of Z
@@ -175,7 +175,7 @@ def Draw_Toys(ValDist,Vars,BDTName):
 
         #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
         Nexp = {}
-        Nexp["sig"] = 250
+        Nexp["sig"] = 503
         Nexp["bkg"] = 17568598
 
         #Compute the pulls
@@ -214,7 +214,7 @@ def Draw_Toys(ValDist,Vars,BDTName):
 
         axs[0,0].text(1.1,1.2,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0,0].transAxes,ha="center",va="center")
 
-        fig.savefig(f"{BDTName}_{var}.pdf")    
+        fig.savefig(f"LumiFix_{BDTName}_{var}.pdf")    
             
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

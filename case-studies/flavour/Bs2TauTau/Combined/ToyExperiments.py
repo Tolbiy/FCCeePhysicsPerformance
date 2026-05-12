@@ -99,8 +99,8 @@ def Make_Shapes(hlist,Vars):
         for mode in ["bb","cc","ss","ud"]:
             htemp[mode+"_l"] = hlist[mode+"_l_"+var][0]*LumiScale[mode+"_l"]*BR_qq[mode]
             htemp[mode+"_3pi"] = hlist[mode+"_3pi_"+var][0]*LumiScale[mode+"_3pi"]*BR_qq[mode]
-        htemp["sig_l"] = hlist["sig_l_"+var][0]*LumiScale["sig_l"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim
-        htemp["sig_3pi"] = hlist["sig_3pi_"+var][0]*LumiScale["sig_3pi"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau23pi
+        htemp["sig_l"] = hlist["sig_l_"+var][0]*LumiScale["sig_l"]*BR_qq["bb"]*Bs_had*2*Bs2TauTau_BR*Tau2l_Sim
+        htemp["sig_3pi"] = hlist["sig_3pi_"+var][0]*LumiScale["sig_3pi"]*BR_qq["bb"]*Bs_had*2*Bs2TauTau_BR*Tau23pi
         
         #Fuse the bin edges (I just add them one behind the other by removing the first element of the second list of edges and shifting them to the end of the first list of edges)
         #Not sure how this will affect the fit but shouldn't since the only thing we care about is the bin height
@@ -139,8 +139,8 @@ def Make_Data(hlist,Vars,bkg_dummyEff,sig_dummyEff,seed):
         for mode in ["bb","cc","ss","ud"]:
             htemp[mode+"_l"] = np.rint(hlist[mode+"_l_"+var][0]*LumiScale[mode+"_l"]*BR_qq[mode]*bkg_dummyEff) #Round to the int, still a float type hope it works fine with the Poisson toy
             htemp[mode+"_3pi"] = np.rint(hlist[mode+"_3pi_"+var][0]*LumiScale[mode+"_3pi"]*BR_qq[mode]*bkg_dummyEff)
-        htemp["sig_l"] = np.rint(hlist["sig_l_"+var][0]*LumiScale["sig_l"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau2l_Sim*sig_dummyEff)
-        htemp["sig_3pi"] = np.rint(hlist["sig_3pi_"+var][0]*LumiScale["sig_3pi"]*BR_qq["bb"]*Bs_had*Bs2TauTau_BR*Tau23pi*sig_dummyEff)
+        htemp["sig_l"] = np.rint(hlist["sig_l_"+var][0]*LumiScale["sig_l"]*BR_qq["bb"]*Bs_had*2*Bs2TauTau_BR*Tau2l_Sim*sig_dummyEff)
+        htemp["sig_3pi"] = np.rint(hlist["sig_3pi_"+var][0]*LumiScale["sig_3pi"]*BR_qq["bb"]*Bs_had*2*Bs2TauTau_BR*Tau23pi*sig_dummyEff)
 
         if seed == 10: #Print only at the beginning for info
             print(f"Total Tau2L Data Background = {np.sum(htemp['bb_l']+htemp['cc_l']+htemp['ss_l']+htemp['ud_l'])}")
@@ -247,7 +247,7 @@ def Draw_Toys(ValDist,Vars,BDTNames):
 
         #The expected value (true number of signal events used for toy gen) (to be sepecialised per var)
         Nexp = {}
-        Nexp["sig"] = 3055
+        Nexp["sig"] = 6114
         Nexp["bkg_3pi"] = 17568598
         Nexp["bkg_l"] = 656450081
 
@@ -277,7 +277,7 @@ def Draw_Toys(ValDist,Vars,BDTNames):
         axs[2].text(0.02,0.98,r"$N_{\rm bkg}^{\tau\to\ell}="+f"{int(np.array(ValDist[var]['Best_Bkg_l']).mean())}\pm"+f"{int(np.array(ValDist[var]['Best_Bkg_l']).std())}"+r"$",size="large",transform=axs[2].transAxes,ha="left",va="top")
 
         axs[0].text(1.1,1.1,r"\textrm{"+f"{var}"+r" Toys Results (}$N_{toys}="+f"{len(ValDist[var]['Best_Sig'])}"+r"$\textrm{)}",size="xx-large",transform=axs[0].transAxes,ha="center",va="center")
-        fig.savefig(f"{BDTNames[0]}-{BDTNames[1]}_{var}_Seed5.pdf")
+        fig.savefig(f"LumiFix_{BDTNames[0]}-{BDTNames[1]}_{var}.pdf")
 
 
         #fig, axs = plt.subplots(3,2)
@@ -364,7 +364,7 @@ def Do_Toys(Vars,BDTNames,Bins,BkgEff,SigEff,NToy):
         Values[var] = {"Best_Sig":[],"Sigma_Sig":[],"Best_Bkg_l":[],"Sigma_Bkg_l":[],"Best_Bkg_3pi":[],"Sigma_Bkg_3pi":[]}
     print("Start producing and fitting toys...\n") 
     for i in tqdm(np.arange(0,NToy,1)):
-        Data = Make_Data(h,Vars,BkgEff,SigEff,i+15000)
+        Data = Make_Data(h,Vars,BkgEff,SigEff,10*i)
         #print("===========================================")
         #print(Data["MVA2"][0])
         popt, pcov = Fitter(Data,Sig,Bkg,Vars) #, Chi2
